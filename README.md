@@ -5,7 +5,7 @@
 <p align="center">
 <a href="#"><img src="https://img.shields.io/badge/contributors-1-green" alt=""></a>
 <a href="#"><img src="https://img.shields.io/badge/developing-stable-green" alt=""></a>
-<a href="#"><img src="https://img.shields.io/badge/version-1.0.0-blue" alt=""></a>
+<a href="#"><img src="https://img.shields.io/badge/version-v0.1.0-blue" alt=""></a>
 <a href="https://twitter.com/intent/follow?screen_name=drfabiocastro">
 <img src="https://img.shields.io/twitter/follow/drfabiocastro?style=social&logo=twitter" alt="follow on Twitter"></a>
 </p>

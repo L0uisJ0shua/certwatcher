@@ -2,7 +2,6 @@
 <p align="center">
   <img width="460" height="auto" src="https://user-images.githubusercontent.com/110246050/215688266-a8aacee4-9e47-4f9a-92d1-961b61812ec4.png">
 </p>
-
 <p align="center">
 <a href="#"><img src="https://img.shields.io/badge/contributors-1-green" alt=""></a>
 <a href="#"><img src="https://img.shields.io/badge/developing-stable-green" alt=""></a>

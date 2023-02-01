@@ -14,7 +14,7 @@
 CertWatcher is a tool for capturing and tracking certificate transparency logs, using YAML templates and Selenium. The tool helps to detect and analyze phishing sites, and is designed to make it easy to use for security professionals and researchers.
 </p>
 <p align="center">
-<img width="780" height="auto" src="https://user-images.githubusercontent.com/110246050/215924116-0ddec1f3-c156-4e88-8204-060ee07a116e.png">
+<img width="780" height="auto" src="https://user-images.githubusercontent.com/110246050/216151671-66e7cc76-0c31-42e7-aab5-97e46ec039d9.jpg">
 <br>
 <em>Simple flowchart of how Certwatcher works.</em>
 </p>

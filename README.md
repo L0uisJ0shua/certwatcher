@@ -48,7 +48,7 @@ Welcome to the Certwatcher Installation Guide. In this guide, we will walk you t
 $ certwatcher
 
 ```
-## Autores
+## Authors
 
 - [@drfabiocastro](https://www.github.com/drfabiocastro)
 

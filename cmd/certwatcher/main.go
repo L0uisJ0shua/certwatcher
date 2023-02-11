@@ -1,11 +1,9 @@
 package main
 
 import (
-	"github.com/projectdiscovery/gologger"
-	"github.com/projectdiscovery/gologger/levels"
+	"internal/runner"
 )
 
 func main() {
-	// Main of the Application
-	
+	runner.Banner()
 }

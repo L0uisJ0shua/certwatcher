@@ -3,14 +3,14 @@ BINARY=certwatcher
 all: build
 
 build:
-	go build -o $(BINARY) cmd/certwatcher/main.go
+	go build -o cmd/certwatcher/$(BINARY) cmd/certwatcher/main.go
 
 clean:
 	go clean
-	rm -f $(BINARY)
+	rm -f cmd/certwatcher/$(BINARY)
 
 run:
-	./$(BINARY)
+	cmd/certwatcher/$(BINARY)
 
 .PHONY: all build clean run
 

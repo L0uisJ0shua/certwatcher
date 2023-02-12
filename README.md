@@ -21,3 +21,34 @@ CertWatcher is a tool for capturing and tracking certificate transparency logs, 
 <p align="justify">
 Certwatcher continuously monitors the certificate data stream and checks for suspicious patterns or malicious activity. If a threat is detected, the tool can take measures to prevent the attack, such as blocking the website or sending a notification. Certwatcher can also be customized to detect specific phishing patterns and combat the spread of malicious websites through online advertisements. Furthermore, Selenium is used to automate web tests and collect data on websites, which is essential for accurate and efficient detection of cyber attacks.
 <p>
+
+
+# Certwatcher Installation Guide
+
+Welcome to the Certwatcher Installation Guide. In this guide, we will walk you through the process of installing the Certwatcher application.
+
+
+## Requirements
+- Go 1.13 or later
+- Git
+## Installing
+
+```bash
+  git clone https://github.com/drfabiocastro/certwatcher.git
+  cd certwatcher
+  make build
+  sudo make install
+```
+*This will install the Certwatcher binary at /usr/bin/certwatcher. You can now run the Certwatcher binary from any location.*
+
+
+## Running Certwatcher
+*You can run the Certwatcher binary by executing the following command:*
+```bash
+$ certwatcher
+
+```
+## Authors
+
+- [@drfabiocastro](https://www.github.com/drfabiocastro)
+

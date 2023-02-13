@@ -21,6 +21,6 @@ var (
 	Name = "certwatcher"
 	Notice = "\n\nThis project is in active development not ready for production. \nPlease use a proxy to stay safe. Use at your own risk."
 	
-	Templates = path.Join(getCurrentDirectory(), "internal/app/templates/")
-	Keywords = path.Join(getCurrentDirectory(), "internal/app/keywords/fas-keywords-default.yaml")
+	Templates = path.Join(getCurrentDirectory(), "certwatcher/internal/app/templates/")
+	Keywords = path.Join(getCurrentDirectory(), "certwatcher/internal/app/keywords/fas-keywords-default.yaml")
 )

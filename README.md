@@ -50,5 +50,5 @@ $ certwatcher
 ```
 ## Authors
 
-- [@drfabiocastro](https://www.github.com/drfabiocastro)
+- [@drfabiocastro](https://www.twitter.com/drfabiocastro)
 

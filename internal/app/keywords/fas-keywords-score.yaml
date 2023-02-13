@@ -1,0 +1,18 @@
+info:
+ id: fas-keywords-default
+ name: Commons Default Keywords
+ author: Fábio Castro
+ description: Credit score increase scam via advertisement.
+ tags:
+  - score
+  - advertisement
+
+ references:
+  - Reports on Financial Fraud from the Central Bank of Brazil
+  - News articles about the credit score increase scam via advertisement
+  - Consumer protection websites about protection against financial fraud
+
+ keywords:
+  - score
+ response:
+  - status_code: 200

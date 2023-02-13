@@ -1,0 +1,88 @@
+info:
+ id: fas-keywords-default
+ name: Commons Default Keywords
+ author: Fábio Castro
+ description: A common Scam keywords.
+ 
+ keywords:
+  - verification
+  - webscr
+  - credential
+  - support
+  - activity
+  - security
+  - update
+  - authentication
+  - authenticate
+  - authorize
+  - wallet
+  - purchase
+  - transaction
+  - recover
+  - unlock
+  - confirm
+  - service
+  - manage
+  - invoice
+  - secure
+  - customer
+  - client
+  - santander
+  - pagseguro
+  - bitcoin
+  - yobit
+  - bitfinex
+  - etherdelta
+  - iqoption
+  - localbitcoins
+  - ethereum
+  - wallet
+  - mymonero
+  - blockchain
+  - bitflyer
+  - coinbase
+  - hitbtc
+  - lakebtc
+  - bitfinex
+  - bitconnect
+  - coinsbank
+  - moneypaypal
+  - moneygram
+  - westernunion
+  - bankofamerica
+  - wellsfargo
+  - itau
+  - nubank
+  - paypal
+  - bittrex
+  - blockchain
+  - netflix
+  - gmail
+  - yahoo
+  - google
+  - apple
+  - cryptopia
+  - localbitcoins
+  - gdax
+  - changelly
+  - binance
+  - hitbtc
+  - bithumb
+  - luno
+  - coinatmradar
+  - poloniex
+  - shapeshift
+  - bitmex
+  - gemini
+  - bitbay
+  - coinmama
+  - bitflyer
+  - bisq
+  - btcmarkets
+  - coincheck
+  - zebpay
+  - indacoin
+  - coinhive
+
+ response:
+  - status_code: 200

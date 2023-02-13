@@ -10,7 +10,6 @@ import (
 	"github.com/projectdiscovery/gologger"
 	"github.com/projectdiscovery/goflags"
 	"strings"
-	"os"
 )
 
 var ( 

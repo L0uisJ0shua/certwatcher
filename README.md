@@ -44,13 +44,18 @@ Welcome to the Certwatcher Installation Guide. In this guide, we will walk you t
 *This will install the Certwatcher binary at /usr/bin/certwatcher. You can now run the Certwatcher binary from any location.*
 
 
+
 ## Running Certwatcher
 *You can run the Certwatcher binary by executing the following command:*
 ```bash
 $ certwatcher
 
 ```
+
+![Captura de tela de 2023-02-14 14-49-12](https://user-images.githubusercontent.com/110246050/218817878-9b31af1c-dedd-4e64-9395-030cc6c0c06d.png)
+
 ## Authors
 
 - [@drfabiocastro](https://www.twitter.com/drfabiocastro)
+
 

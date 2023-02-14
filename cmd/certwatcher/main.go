@@ -17,7 +17,6 @@ var (
 	options = &types.Options{}
 )
 
-
 type CertificateInfo struct {
 	Domains      string
 	Certificates interface{}

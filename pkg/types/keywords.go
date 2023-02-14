@@ -1,7 +1,5 @@
 package types
 
-
-// Keywords representa o conteúdo do arquivo keywords.yaml
 type Keywords struct {
 	Info struct {
 		Name        string   `yaml:"name"`

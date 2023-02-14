@@ -53,6 +53,7 @@ $ certwatcher
 ```
 
 ![Captura de tela de 2023-02-14 14-49-12](https://user-images.githubusercontent.com/110246050/218817878-9b31af1c-dedd-4e64-9395-030cc6c0c06d.png)
+Watch the video of [certwatcher](https://asciinema.org/a/559827) runninng
 
 ## Authors
 

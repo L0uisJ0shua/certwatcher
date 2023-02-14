@@ -21,6 +21,9 @@ require (
 	github.com/projectdiscovery/goflags v0.1.6
 	github.com/sirupsen/logrus v1.9.0
 	pkg/certstream v0.0.0-00010101000000-000000000000
+	pkg/config v0.0.0-00010101000000-000000000000
+	pkg/types v0.0.0-00010101000000-000000000000
+	pkg/yamlreader v0.0.0-00010101000000-000000000000
 )
 
 require (
@@ -54,7 +57,4 @@ require (
 	gopkg.in/djherbis/times.v1 v1.3.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	pkg/config v0.0.0-00010101000000-000000000000 // indirect
-	pkg/types v0.0.0-00010101000000-000000000000 // indirect
-	pkg/yamlreader v0.0.0-00010101000000-000000000000 // indirect
 )

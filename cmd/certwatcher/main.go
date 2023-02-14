@@ -10,11 +10,19 @@ import (
 	"github.com/projectdiscovery/gologger"
 	"github.com/projectdiscovery/goflags"
 	"strings"
+	"os"
 )
 
 var ( 
 	options = &types.Options{}
 )
+
+
+type CertificateInfo struct {
+	Domains      string
+	Certificates interface{}
+	Keyword string
+}
 
 func main() {
 
@@ -26,7 +34,7 @@ func main() {
 	// templates configs
 	flagSet.CreateGroup("templates", "Templates",
 		flagSet.StringSliceVarP(&opt.Templates, "template", "t", nil, "List of template or template directory to run (comma-separated, file)", goflags.FileCommaSeparatedStringSliceOptions),
-		flagSet.StringSliceVarP(&opt.Keywords, "keyword", "", nil, "Specify a YAML template to load the search words", goflags.FileCommaSeparatedStringSliceOptions),
+		flagSet.StringVarP(&opt.Keywords, "keyword", "", "", "Specify a YAML template to load the search words"),
     flagSet.BoolVar(&opt.Validate, "validate", false, "Validate the passed templates to certwatcher"),
 	)
     // browser configs
@@ -37,8 +45,7 @@ func main() {
 	)
 	// debug
 	flagSet.CreateGroup("debug", "Debug",
-		flagSet.BoolVar(&opt.Verbose, "vv", false, "Display templates loaded for scan"),
-		flagSet.BoolVar(&opt.Debug, "vvv", false, "Display templates loaded and debug information"),
+		flagSet.BoolVar(&opt.Debug, "vv", false, "Display templates loaded and debug information"),
 		flagSet.BoolVar(&opt.Version, "version", false, "Show certwatcher version"),
 	)
 
@@ -48,17 +55,35 @@ func main() {
 
 	certrun.Banner()
 
+
+	if opt.Debug {
+		log.SetLevel(log.DebugLevel)
+	} else if opt.Version {
+		log.Info("Certwatcher Version %s", config.Version)
+		os.Exit(1)
+	}
+
 	var keywords types.Keywords
-	// Debug
-	gologger.Info().Msgf("Loading Default Keywords Templates")
-	log.Info("Loading a default keywords Templates")
-	err := yamlreader.ReadYAMLFile(config.Keywords, &keywords)
-	if err != nil {
-		log.Fatalf("Error: %v", err)
+	
+	if len(opt.Keywords) > 0 {
+		// Debug
+		gologger.Info().Msgf("Loading Custom Keywords Templates")
+		log.Debug("Loading a Custom keywords Templates")
+		err := yamlreader.ReadYAML(opt.Keywords, &keywords)
+		if err != nil {
+			log.Fatalf("Error: %v", err)
+		}
+
+	} else {
+		 // Debug
+		gologger.Info().Msgf("Loading Default Keywords Templates")
+		log.Debug("Loading a default keywords Templates")
+		err := yamlreader.ReadYAML(config.Keywords, &keywords)
+		if err != nil {
+			log.Fatalf("Error: %v", err)
+		}
 	}
 	
-	// configurações padrão (nível de log, formatador, saída)
-	log.SetLevel(log.DebugLevel)
 	logger := 0
 
 	certStream := certstream.NewCertStream()
@@ -68,17 +93,20 @@ func main() {
 	for event := range certStream.GetCertificates() {
 		for _, keyword := range keywords.Info.Keywords {
 			if strings.Contains(strings.ToLower(event.Data.LeafCert.Subject.Domain), strings.ToLower(keyword)) {
-				domains := log.Fields{
-					"Domains": event.Data.LeafCert.Subject.Domain,
-					"Certificates": logger,
+
+				ci := CertificateInfo{
+					Domains:      event.Data.LeafCert.Subject.Domain,
+					Certificates: logger,
+					Keyword: strings.ToLower(keyword),
 				}
 
-				log.WithFields(domains).Debug("[INFO] Certificates and Domains for analysis")
-
-				logger++
+				gologger.Info().Msgf("domain(s) matching: %s", ci.Domains)
+				gologger.Info().Msgf("%d certificate(s) issued\n", ci.Certificates)
+				gologger.Info().Msgf("keyword(s) matching: %s", ci.Keyword)
 				break
 			}
+		}
+		logger++
 	}
-}
 
 }

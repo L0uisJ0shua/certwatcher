@@ -2,16 +2,10 @@ package config
 
 import (
 	"os"
-	"path"
+	"path/filepath"
 )
 
-func getCurrentDirectory() string {
-	dir, err := os.Getwd()
-	if err != nil {
-		panic(err)
-	}
-	return dir
-}
+var directory = os.Getenv("HOME")
 
 var (
 	// Version represents the current version of the application
@@ -21,6 +15,6 @@ var (
 	Name = "certwatcher"
 	Notice = "\n\nThis project is in active development not ready for production. \nPlease use a proxy to stay safe. Use at your own risk."
 	
-	Templates = path.Join(getCurrentDirectory(), "certwatcher/internal/app/templates/")
-	Keywords = path.Join(getCurrentDirectory(), "certwatcher/internal/app/keywords/fas-keywords-default.yaml")
+	Templates = filepath.Join(directory, "/.certwatcher-templates", "templates")
+	Keywords = filepath.Join(directory, "/.certwatcher-templates/keywords/", "fas-keywords-default.yaml")
 )

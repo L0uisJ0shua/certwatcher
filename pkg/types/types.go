@@ -13,7 +13,7 @@ type Options struct {
 	Templates goflags.StringSlice
 	// YAML with keywords
 	// This field specifies the YAML file that contains the keywords that the program will search for
-	Keywords  goflags.StringSlice
+	Keywords  string
 	// Validate YAML templates
 	// This field specifies if the program should validate the YAML templates before loading them
 	Validate bool

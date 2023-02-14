@@ -44,7 +44,7 @@ func (c *CertStream) GetCertificates() chan *CertStreamEvent {
 		for {
 			conn, _, err := websocket.DefaultDialer.Dial(c.URL, nil)
 			if err != nil {
-				log.Println("Error dialing certstream:", err)
+				log.Debug("Error dialing certstream:", err)
 				continue
 			}
 			defer conn.Close()
@@ -52,7 +52,7 @@ func (c *CertStream) GetCertificates() chan *CertStreamEvent {
 			for {
 				_, message, err := conn.ReadMessage()
 				if err != nil {
-					log.Println("Error reading message from certstream")
+					log.Debug("Error reading message from certstream")
 					break
 				}
 

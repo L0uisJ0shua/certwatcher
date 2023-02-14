@@ -22,6 +22,8 @@ CertWatcher is a tool for capturing and tracking certificate transparency logs, 
 Certwatcher continuously monitors the certificate data stream and checks for suspicious patterns or malicious activity. If a threat is detected, the tool can take measures to prevent the attack, such as blocking the website or sending a notification. Certwatcher can also be customized to detect specific phishing patterns and combat the spread of malicious websites through online advertisements. Furthermore, Selenium is used to automate web tests and collect data on websites, which is essential for accurate and efficient detection of cyber attacks.
 <p>
 
+Certwatcher has a dedicated [github repository](https://github.com/drfabiocastro/certwatcher-templates) for templates, contribute by creating your template for the project.
+
 
 # Certwatcher Installation Guide
 

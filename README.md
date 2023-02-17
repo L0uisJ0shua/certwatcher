@@ -48,7 +48,7 @@ Welcome to the Certwatcher Installation Guide. In this guide, we will walk you t
 ## Running Certwatcher
 *You can run the Certwatcher binary by executing the following command:*
 ```bash
-$ certwatcher
+$ certwatcher -h
 
 ```
 ![Captura de tela de 2023-02-17 19-52-44](https://user-images.githubusercontent.com/110246050/219812549-f7d7fd05-317e-4d81-91c9-48376efd659e.png)

@@ -51,12 +51,9 @@ Welcome to the Certwatcher Installation Guide. In this guide, we will walk you t
 $ certwatcher
 
 ```
-
-![Captura de tela de 2023-02-14 14-49-12](https://user-images.githubusercontent.com/110246050/218817878-9b31af1c-dedd-4e64-9395-030cc6c0c06d.png)
+![Captura de tela de 2023-02-17 19-52-44](https://user-images.githubusercontent.com/110246050/219812549-f7d7fd05-317e-4d81-91c9-48376efd659e.png)
 Watch the video of [certwatcher](https://asciinema.org/a/559827) runninng
 
 ## Authors
 
 - [@drfabiocastro](https://www.twitter.com/drfabiocastro)
-
-

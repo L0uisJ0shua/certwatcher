@@ -13,7 +13,7 @@ type Options struct {
 	Templates goflags.StringSlice
 	// YAML with keywords
 	// This field specifies the YAML file that contains the keywords that the program will search for
-	Keywords string
+	Keywords goflags.StringSlice
 	// Validate YAML templates
 	// This field specifies if the program should validate the YAML templates before loading them
 	Validate bool
@@ -27,6 +27,19 @@ type Options struct {
 
 	// General Config
 	Verbose bool
+	VerboseVerbose bool
 	Debug   bool
 	Version bool
+
+	Retries int
+	Timeout int
+}
+
+
+// DefaultOptions returns default options for nuclei
+func DefaultOptions() *Options {
+	return &Options{
+		Timeout:                 5,
+		Retries:                 1,
+	}
 }

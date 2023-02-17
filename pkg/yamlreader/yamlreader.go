@@ -21,6 +21,16 @@ func ReadYAML(src interface{}, v interface{}) error {
 		}
 	case []byte:
 		data = s
+	case []string:
+		// Concatena o conteúdo de todos os arquivos YAML do slice
+		for _, filename := range s {
+			filedata, err := ioutil.ReadFile(filename)
+			if err != nil {
+				log.Printf("Error: %v", err)
+				return err
+			}
+			data = append(data, filedata...)
+		}
 	default:
 		log.Printf("Error: Invalid source type %T", s)
 		return err

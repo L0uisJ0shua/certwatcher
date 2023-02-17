@@ -4,28 +4,11 @@ import (
 	"encoding/json"
 	"github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"
+	"pkg/types"
 )
 
 // CertStreamEvent represents a single event from the CertStream
-type CertStreamEvent struct {
-	MessageType string `json:"message_type"`
-	Data        struct {
-		LeafCert struct {
-			Subject struct {
-				Domain string `json:"CN"`
-			} `json:"subject"`
-			Extensions struct {
-				CertificatePolicies string `json:"certificatePolicies"`
-			} `json:"extensions"`
-			ExpiresAt int64 `json:"not_before"`
-			CreatedAt int64 `json:"not_after"`
-		} `json:"leaf_cert"`
-		Source struct {
-			Url  string `json:"url"`
-			Name string `json:"name"`
-		} `json:"source"`
-	} `json:"data"`
-}
+type CertStreamEvent = types.CertStreamEvent
 
 // CertStream is a structure to handle the connection to the CertStream
 type CertStream struct {

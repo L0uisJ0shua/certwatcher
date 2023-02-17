@@ -14,17 +14,6 @@ type Keywords struct {
 		References []string `yaml:"references"`
 		Keywords   []string `yaml:"keywords"`
 		Tlds       []string `yaml:"tlds"`
-		Subject    struct {
-			C                string `yaml:"C"`
-			ST               string `yaml:"ST"`
-			L                string `yaml:"L"`
-			O                string `yaml:"O"`
-			OU               string `yaml:"OU"`
-			EmailAddress     string `yaml:"emailAddress"`
-			CN               string `yaml:"CN"`
-			UnstructuredName string `yaml:"unstructuredName"`
-		} `yaml:"subject"`
-		Issuer   string `yaml:"issuer"`
 		Response []struct {
 			StatusCode int `yaml:"status_code"`
 		} `yaml:"response"`

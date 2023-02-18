@@ -2,39 +2,27 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
+	"time"
+
 	"github.com/drfabiocastro/certwatcher/pkg/config"
 	"github.com/projectdiscovery/goflags"
 	"github.com/projectdiscovery/gologger"
 	"github.com/projectdiscovery/nuclei/v2/pkg/model/types/severity"
 	log "github.com/sirupsen/logrus"
+
 	"internal/runner"
-	"os"
-	"path/filepath"
 	"pkg/certstream"
 	"pkg/templates"
 	types "pkg/types"
 	yaml "pkg/yamlreader"
-	"strings"
 )
-
-func init() {
-	// Configura o logger para imprimir o nome do arquivo e o número da linha
-	// em que o log foi registrado.
-	log.SetReportCaller(false)
-	// Configura o formato da saída dos logs.
-	// log.SetFormatter(&log.JSONFormatter{})
-	// Configura o output dos logs para o stdout.
-	log.SetOutput(os.Stdout)
-
-}
 
 var (
 	options = &types.Options{}
 )
-
-type CertStreamCertificates struct {
-	Certificates interface{}
-}
 
 type Data struct {
 	id      string
@@ -42,6 +30,18 @@ type Data struct {
 	Type    string
 	Domain  string
 	Options string
+	Issue   string
+}
+
+func init() {
+	// Configures the logger to print the name of the file and the line
+	// where the log was registered.
+	log.SetReportCaller(false)
+	// Configures the format of the log output.
+	// log.SetFormatter(&log.JSONFormatter{})
+	// Configures the log output to stdout.
+	log.SetOutput(os.Stdout)
+
 }
 
 func main() {
@@ -93,8 +93,8 @@ func main() {
 		log.Info("verbose mode enabled")
 	}
 
-	// Show how many templates have been loaded.
-	log.Debug("templates have been loaded ", len(options.Keywords))
+	// Show how many keywords have been loaded.
+	gologger.Info().Msgf("Keywords have been loaded %d", len(options.Keywords))
 
 	// Lendo vários arquivos YAML e concatenando em um slice de structs
 	// Percorre o slice e exibe os dados do YAML de cada item
@@ -107,7 +107,7 @@ func main() {
 	var keywords []string
 
 	for _, t := range options.Keywords {
-		directory := filepath.Join(home, ".certwatcher-templates", t)
+		directory := filepath.Join(home,".certwatcher-templates", t)
 		// Use directory here to access the template directory
 		log.Debug("template keywords directory", directory)
 
@@ -121,7 +121,19 @@ func main() {
 	}
 
 	logger := 0
+
 	certStream := certstream.NewCertStream()
+
+	timerFunc := func() {
+		gologger.Info().Msgf("Number of certificates issued %d", logger)
+	}
+
+	// Define a duração do intervalo de tempo do timer
+	interval := 30 * time.Second
+
+	// Cria o timer e executa a função a cada intervalo de tempo
+	timer := time.NewTicker(interval)
+	defer timer.Stop()
 
 	gologger.Info().Msgf("Capturing the certificates for analysis")
 
@@ -130,20 +142,26 @@ func main() {
 		Message := Data{
 			Domain:  event.Data.LeafCert.Subject.CN,
 			Options: event.Data.LeafCert.Extensions.SubjectAltName,
+			Issue: strings.Replace(event.Data.LeafCert.Extensions.AuthorityInfoAccess, "\n", "", -1),
 		}
-
-		log.Debug("certificates issued ", logger)
 
 		for _, keyword := range keywords {
 			if strings.Contains(strings.ToLower(Message.Domain), strings.ToLower(keyword)) {
 				fmt.Printf("%s\n",
 					templates.Certslogger("ssl-dns-names", "dns", severity.Info, Message.Domain, string(Message.Options)))
 				fmt.Printf("%s\n",
-					templates.Certslogger("caa-issuer", "ssl", severity.Info, Message.Domain, strings.Replace(event.Data.LeafCert.Extensions.AuthorityInfoAccess, "\n", "", -1)))
-				fmt.Printf("%s\n\n",
+					templates.Certslogger("caa-issuer", "ssl", severity.Info, Message.Domain, Message.Issue))
+				fmt.Printf("%s\n",
 					templates.Certslogger("keyword", keyword, severity.Info, Message.Domain, string(Message.Options)))
 			}
 		}
+		
 		logger++
+		
+		select {
+		case <-timer.C:
+			timerFunc()
+		default:
+		}
 	}
 }

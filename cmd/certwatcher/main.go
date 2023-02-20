@@ -18,6 +18,7 @@ import (
 	"pkg/templates"
 	types "pkg/types"
 	yaml "pkg/yamlreader"
+	"regexp"
 	"pkg/matchers"
 )
 
@@ -73,7 +74,7 @@ func main() {
 	)
 
 	if err := flagSet.Parse(); err != nil {
-		log.Fatal("exit ")
+		log.Fatal("Exit ")
 	}
 
 	runner.Welcome()
@@ -108,13 +109,13 @@ func main() {
 	}
 
 	var keywords []string
+	var template types.Keywords
 
 	for _, t := range options.Keywords {
 		directory := filepath.Join(home,".certwatcher-templates", t)
 		// Use directory here to access the template directory
 		log.Debug("template keywords directory", directory)
 
-		var template types.Keywords
 		err := yaml.ReadYAML(directory, &template)
 		if err != nil {
 			log.Info(err)
@@ -124,6 +125,7 @@ func main() {
 	}
 
 	certs := 0
+	tlds := len(template.Info.Tlds)
 
 	certStream := certstream.NewCertStream()
 
@@ -132,11 +134,15 @@ func main() {
 	}
 
 	// Define a duração do intervalo de tempo do timer
-	interval := 5 * time.Second
+	interval := 30 * time.Second
 
 	// Cria o timer e executa a função a cada intervalo de tempo
 	timer := time.NewTicker(interval)
 	defer timer.Stop()
+
+	if tlds > 0 {
+		gologger.Info().Msgf("Matchers TLDs (Top-Level Domains) %d", tlds)
+	}
 
 	gologger.Info().Msgf("Capturing the certificates for analysis")
 
@@ -147,16 +153,45 @@ func main() {
 			Options: event.Data.LeafCert.Extensions.SubjectAltName,
 			Issue: strings.Replace(event.Data.LeafCert.Extensions.AuthorityInfoAccess, "\n", "", -1),
 		}
-
+		
 		for _, keyword := range keywords {
-
 			if matchers.Contains(message.Domain, keyword) {
-				logger(types.SSLDNSNames, types.DNS, severity.Info, message.Domain, string(message.Options))
-				logger(types.CAAIssuer, types.SSL, severity.Info, message.Domain, message.Issue)
-				logger(types.Keyword, keyword, severity.Info, message.Domain, string(message.Options))
+				hasMatch := false
+				
+				// Check if TLDs exist
+				if tlds > 0 {
+					// Check for TLD matches
+					for _, tld := range template.Info.Tlds {
+						if tld, _ := regexp.MatchString(tld.Pattern, message.Domain); tld {
+							logger(types.SSLDNSNames, types.DNS, severity.Info, message.Domain, string(message.Options))
+							logger(types.CAAIssuer, types.SSL, severity.Info, message.Domain, message.Issue)
+							logger(types.Keyword, keyword, severity.Info, message.Domain, string(message.Options))
+							hasMatch = true
+							break
+						}
+					}
+				}
+
+				// Check for matcher matches, but only if no TLD match was found
+				if !hasMatch {
+					for _, matcher := range template.Info.Matchers {
+						if matched, _ := regexp.MatchString(matcher.Pattern, message.Domain); matched {
+							logger(types.SSLDNSNames, types.DNS, severity.Info, message.Domain, string(message.Options))
+							logger(types.CAAIssuer, types.SSL, severity.Info, message.Domain, message.Issue)
+							logger(types.Keyword, keyword, severity.Info, message.Domain, string(message.Options))
+							hasMatch = true
+							break
+						}
+					}
+				}
+
+				// Handle the case where no TLD or matcher match was found
+				if !hasMatch {
+					logger(types.Keyword, keyword, severity.Info, message.Domain, "No TLD or Matcher match found in the template")
+				}
 			}
 		}
-		
+
 		certs++
 
 		select {

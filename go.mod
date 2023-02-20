@@ -16,6 +16,8 @@ replace pkg/yamlreader => ./pkg/yamlreader
 
 replace pkg/templates => ./pkg/templates
 
+replace pkg/matchers => ./pkg/matchers
+
 require (
 	github.com/projectdiscovery/gologger v1.1.7
 	internal/runner v0.0.0-00010101000000-000000000000
@@ -23,11 +25,11 @@ require (
 
 require (
 	github.com/drfabiocastro/certwatcher/pkg/config v0.0.0-20230214182650-bfc73d3514ef
-	github.com/go-yaml/yaml v2.1.0+incompatible
 	github.com/projectdiscovery/goflags v0.1.6
 	github.com/projectdiscovery/nuclei/v2 v2.8.9
 	github.com/sirupsen/logrus v1.9.0
 	pkg/certstream v0.0.0-00010101000000-000000000000
+	pkg/matchers v0.0.0-00010101000000-000000000000
 	pkg/templates v0.0.0-00010101000000-000000000000
 	pkg/types v0.0.0-00010101000000-000000000000
 	pkg/yamlreader v0.0.0-00010101000000-000000000000
@@ -62,8 +64,6 @@ require (
 	github.com/saintfish/chardet v0.0.0-20230101081208-5e3ef4b5456d // indirect
 	github.com/ulikunitz/xz v0.5.11 // indirect
 	github.com/xi2/xz v0.0.0-20171230120015-48954b6210f8 // indirect
-	go.uber.org/atomic v1.10.0 // indirect
-	go.uber.org/multierr v1.9.0 // indirect
 	golang.org/x/crypto v0.5.0 // indirect
 	golang.org/x/exp v0.0.0-20230206171751-46f607a40771 // indirect
 	golang.org/x/mod v0.8.0 // indirect

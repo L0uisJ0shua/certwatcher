@@ -18,6 +18,7 @@ import (
 	"pkg/templates"
 	types "pkg/types"
 	yaml "pkg/yamlreader"
+	"pkg/matchers"
 )
 
 var (
@@ -37,11 +38,13 @@ func init() {
 	// Configures the logger to print the name of the file and the line
 	// where the log was registered.
 	log.SetReportCaller(false)
-	// Configures the format of the log output.
-	// log.SetFormatter(&log.JSONFormatter{})
 	// Configures the log output to stdout.
 	log.SetOutput(os.Stdout)
 
+}
+
+func logger(count string, category string, sev severity.Severity, domain string, message string) {
+	fmt.Printf("%s\n", templates.Logger(count, category, sev, domain, message))
 }
 
 func main() {
@@ -120,16 +123,16 @@ func main() {
 		keywords = append(keywords, template.Info.Keywords...)
 	}
 
-	logger := 0
+	certs := 0
 
 	certStream := certstream.NewCertStream()
 
 	timerFunc := func() {
-		gologger.Info().Msgf("Number of certificates issued %d", logger)
+		gologger.Info().Msgf("Number of certificates issued %d", certs)
 	}
 
 	// Define a duração do intervalo de tempo do timer
-	interval := 30 * time.Second
+	interval := 5 * time.Second
 
 	// Cria o timer e executa a função a cada intervalo de tempo
 	timer := time.NewTicker(interval)
@@ -139,25 +142,23 @@ func main() {
 
 	for event := range certStream.GetCertificates() {
 
-		Message := Data{
+		message := Data{
 			Domain:  event.Data.LeafCert.Subject.CN,
 			Options: event.Data.LeafCert.Extensions.SubjectAltName,
 			Issue: strings.Replace(event.Data.LeafCert.Extensions.AuthorityInfoAccess, "\n", "", -1),
 		}
 
 		for _, keyword := range keywords {
-			if strings.Contains(strings.ToLower(Message.Domain), strings.ToLower(keyword)) {
-				fmt.Printf("%s\n",
-					templates.Certslogger("ssl-dns-names", "dns", severity.Info, Message.Domain, string(Message.Options)))
-				fmt.Printf("%s\n",
-					templates.Certslogger("caa-issuer", "ssl", severity.Info, Message.Domain, Message.Issue))
-				fmt.Printf("%s\n",
-					templates.Certslogger("keyword", keyword, severity.Info, Message.Domain, string(Message.Options)))
+
+			if matchers.Contains(message.Domain, keyword) {
+				logger(types.SSLDNSNames, types.DNS, severity.Info, message.Domain, string(message.Options))
+				logger(types.CAAIssuer, types.SSL, severity.Info, message.Domain, message.Issue)
+				logger(types.Keyword, keyword, severity.Info, message.Domain, string(message.Options))
 			}
 		}
 		
-		logger++
-		
+		certs++
+
 		select {
 		case <-timer.C:
 			timerFunc()

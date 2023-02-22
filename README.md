@@ -22,36 +22,25 @@ CertWatcher is a tool for capturing and tracking certificate transparency logs, 
 <p align="justify">
 Certwatcher continuously monitors the certificate data stream and checks for suspicious patterns or malicious activity. If a threat is detected, the tool can take measures to prevent the attack, such as blocking the website or sending a notification. Certwatcher can also be customized to detect specific phishing patterns and combat the spread of malicious websites through online advertisements. Furthermore, Selenium is used to automate web tests and collect data on websites, which is essential for accurate and efficient detection of cyber attacks.
 <p>
+  
+##  Get Started
+Certwatcher allows you to use custom templates to display the certificate information. We have some public custom templates available from the community. You can find them in our [repository](https://www.twitter.com/drfabiocastro). 
+  
+### Useful Links
 
-Certwatcher has a dedicated [github repository](https://github.com/drfabiocastro/certwatcher-templates) for templates, contribute by creating your template for the project.
+- [Installation](https://certwatcher.io/installation)
+- [Docs](https://certwatcher.io/installation)
+- [Templates](https://certwatcher.io/installation)
 
+### Contribution
+If you want to contribute to this project, follow the steps below:
 
-# Certwatcher Installation Guide
+- Fork this repository.
+- Create a new branch with your feature: git checkout -b my-new-feature
+- Make changes and commit the changes: git commit -m 'Adding a new feature'
+- Push to the original branch: git push origin my-new-feature
+- Open a pull request.
+  
+### Authors
 
-Welcome to the Certwatcher Installation Guide. In this guide, we will walk you through the process of installing the Certwatcher application.
-
-
-## Requirements
-- Go 1.13 or later
-- Git
-## Installing
-
-```bash
-  git clone https://github.com/drfabiocastro/certwatcher.git
-  cd certwatcher
-  make build
-  sudo make install
-```
-*This will install the Certwatcher binary at /usr/bin/certwatcher. You can now run the Certwatcher binary from any location.*
-
-## Running Certwatcher
-*You can run the Certwatcher binary by executing the following command:*
-```bash
-$ certwatcher -h
-```
-![Captura de tela de 2023-02-17 20-05-27](https://user-images.githubusercontent.com/110246050/219813923-ac565930-d272-49a9-a85d-872b6b570bf9.png)
-Watch the video of [certwatcher](https://asciinema.org/a/559827) runninng
-
-## Authors
-
-- [@drfabiocastro](https://www.twitter.com/drfabiocastro)
+- [Fábio Castro](https://www.twitter.com/drfabiocastro)

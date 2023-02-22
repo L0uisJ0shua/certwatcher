@@ -29,8 +29,7 @@ Certwatcher allows you to use custom templates to display the certificate inform
 ### Useful Links
 
 - [Installation](https://certwatcher.io/installation)
-- [Docs](https://certwatcher.io/installation)
-- [Templates](https://certwatcher.io/installation)
+- [Docs](https://certwatcher.io/docs)
 
 ### Contribution
 If you want to contribute to this project, follow the steps below:

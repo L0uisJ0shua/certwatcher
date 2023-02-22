@@ -24,7 +24,7 @@ Certwatcher continuously monitors the certificate data stream and checks for sus
 <p>
   
 ##  Get Started
-Certwatcher allows you to use custom templates to display the certificate information. We have some public custom templates available from the community. You can find them in our [repository](https://www.twitter.com/drfabiocastro). 
+Certwatcher allows you to use custom templates to display the certificate information. We have some public custom templates available from the community. You can find them in our [repository](https://github.com/drfabiocastro/certwatcher-templates). 
   
 ### Useful Links
 

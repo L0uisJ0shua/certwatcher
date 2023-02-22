@@ -13,8 +13,9 @@
 <p align="justify">
 CertWatcher is a tool for capturing and tracking certificate transparency logs, using YAML templates and Selenium. The tool helps to detect and analyze phishing sites, and is designed to make it easy to use for security professionals and researchers.
 </p>
+<br>
 <p align="center">
-<img width="780" height="auto" src="https://user-images.githubusercontent.com/110246050/220171015-8c4e7c17-05ba-4b66-a8e9-88b3d223bed7.jpg">
+<img width="780" height="auto" src="https://user-images.githubusercontent.com/110246050/220596417-7a66ac29-cb7b-4058-bbf3-52d9b0849c50.png">
 <br>
 <em>Simple flowchart of how Certwatcher works.</em>
 </p>
@@ -42,8 +43,6 @@ Welcome to the Certwatcher Installation Guide. In this guide, we will walk you t
   sudo make install
 ```
 *This will install the Certwatcher binary at /usr/bin/certwatcher. You can now run the Certwatcher binary from any location.*
-
-
 
 ## Running Certwatcher
 *You can run the Certwatcher binary by executing the following command:*

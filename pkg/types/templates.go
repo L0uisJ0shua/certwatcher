@@ -1,6 +1,6 @@
 package types
 
-type Keywords struct {
+type Templates struct {
 	Info struct {
 		ID           string `yaml:"id"`
 		Name         string `yaml:"name"`
@@ -10,11 +10,12 @@ type Keywords struct {
 			Country string   `yaml:"country"`
 			Tags    []string `yaml:"tags"`
 		} `yaml:"classification"`
+		Condition string `yaml:"matchers-contidion"`
 		Keywords []string `yaml:"keywords"`
 		Matchers []struct {
-			Pattern     string `yaml:"pattern"`
-			Type        string `yaml:"type"`
-			Description string `yaml:"description"`
+			   Type string `json:"type"`
+		       Words []string `json:"words,omitempty"`
+		       Patterns []string `json:"patterns,omitempty"`
 		} `yaml:"matchers"`
 		Tlds []struct {
 			Pattern     string `yaml:"pattern"`

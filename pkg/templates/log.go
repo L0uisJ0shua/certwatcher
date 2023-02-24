@@ -8,7 +8,6 @@ import (
 )
 
 // This package includes a Logger function, which returns a beautified log string for a template, based on the provided parameters.
-
 var (
 	Colorizer aurora.Aurora
 )
@@ -19,9 +18,9 @@ func init() {
 
 // The package also includes a Colorizer object, which is used to colorize output for the Logger function. 
 // The object is initialized in the package's init() function, using the "aurora" package for ANSI color output.
-func Logger(id string, name string, templateSeverity severity.Severity, domain string, options string) string {
+func Message(id string, name string, templateSeverity severity.Severity, domain string, options []string) string {
 
-	return fmt.Sprintf("[%s] [%s] [%s] %s [%s]",
+	return fmt.Sprintf("[%s] [%s] [%s] %s %s",
 		Colorizer.BrightGreen(id).String(),
 		Colorizer.BrightBlue(name).String(),
 		colorizer.GetSeverityColor(templateSeverity),

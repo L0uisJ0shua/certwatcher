@@ -1,51 +1,34 @@
 package main
 
 import (
-	"fmt"
 	"os"
-	"path/filepath"
-	"strings"
-	"time"
-
-	"github.com/drfabiocastro/certwatcher/pkg/config"
 	"github.com/projectdiscovery/goflags"
 	"github.com/projectdiscovery/gologger"
-	"github.com/projectdiscovery/nuclei/v2/pkg/model/types/severity"
 	log "github.com/sirupsen/logrus"
-
-	"internal/runner"
-	"pkg/certstream"
-	"pkg/templates"
+	"github.com/projectdiscovery/gologger/levels"
+	"github.com/logrusorgru/aurora/v4"
 	types "pkg/types"
+	config "pkg/config"
+	template "pkg/templates"
 	yaml "pkg/yamlreader"
-	"regexp"
+	runner "internal/runner"
+	certstream "pkg/certstream"
 	"pkg/matchers"
+	"encoding/json"
+	"pkg/utils"
+	"strings"
+	"time"
 )
 
 var (
 	options = &types.Options{}
+	message = &types.Message{}
 )
-
-type Data struct {
-	id      string
-	Name    string
-	Type    string
-	Domain  string
-	Options string
-	Issue   string
-}
 
 func init() {
 	// Configures the logger to print the name of the file and the line
 	// where the log was registered.
-	log.SetReportCaller(false)
-	// Configures the log output to stdout.
-	log.SetOutput(os.Stdout)
-
-}
-
-func logger(count string, category string, sev severity.Severity, domain string, message string) {
-	fmt.Printf("%s\n", templates.Logger(count, category, sev, domain, message))
+	gologger.DefaultLogger.SetMaxLevel(levels.LevelInfo)
 }
 
 func main() {
@@ -53,151 +36,136 @@ func main() {
 	flagSet := goflags.NewFlagSet()
 	flagSet.SetDescription("This project is in active development not ready for production.")
 
-	// templates configs
+	// Templates configs
 	flagSet.CreateGroup("templates", "Templates",
 		flagSet.StringSliceVarP(&options.Templates, "template", "t", nil, "List of template or template directory to run (comma-separated, file)", goflags.FileCommaSeparatedStringSliceOptions),
-		flagSet.StringSliceVarP(&options.Keywords, "keyword", "", []string{"keywords/fas-keywords-default.yaml"}, "Specify a YAML template to load the search words", goflags.FileCommaSeparatedStringSliceOptions),
 		flagSet.BoolVar(&options.Validate, "validate", false, "Validate the passed templates to certwatcher"),
 	)
-	// browser configs
+	// Browser configs
 	flagSet.CreateGroup("headless", "Headless",
 		flagSet.BoolVar(&options.Headless, "headless", false, "Enable templates that require headless browser support (root user on Linux will disable sandbox)"),
 		flagSet.IntVar(&options.PageTimeout, "timeout", 30, "Seconds to wait for each page in headless mode"),
 		flagSet.BoolVar(&options.PageScreenShot, "screenshot", false, "Configure the program to capture screenshots"),
 	)
-	// debug
+	// Debug
 	flagSet.CreateGroup("debug", "Debug",
-		flagSet.BoolVar(&options.VerboseVerbose, "vv", false, "display templates loaded for scan"),
 		flagSet.BoolVar(&options.Verbose, "verbose", false, "display verbose information"),
 		flagSet.BoolVar(&options.Debug, "debug", false, "show all requests and responses"),
 		flagSet.BoolVar(&options.Version, "version", false, "show certwatcher version"),
 	)
 
-	if err := flagSet.Parse(); err != nil {
-		log.Fatal("Exit ")
-	}
+	err := flagSet.Parse()
 
 	runner.Welcome()
 
-	// Display version
-	if options.Version {
-		log.Info("Current Version: \n", config.Version)
-		os.Exit(0)
+	if err != nil {
+		log.Fatalf("failed to parse command line flags: %s", err)
 	}
+
+	if options.Version {
+	    gologger.Info().Msgf("Certwatcher version %s\n", config.Version)
+	    os.Exit(0)
+	}
+
 	// Debug
 	if options.Debug {
-		// Only log the warning severity or above.
-		log.SetLevel(log.DebugLevel)
-		log.Debug("debug mode enabled")
+		gologger.DefaultLogger.SetMaxLevel(levels.LevelDebug)
 	}
 
 	if options.Verbose {
-		// Only log the warning severity or above.
-		log.SetLevel(log.InfoLevel)
-		log.Info("verbose mode enabled")
+		gologger.DefaultLogger.SetMaxLevel(levels.LevelInfo)
 	}
 
-	// Show how many keywords have been loaded.
-	gologger.Info().Msgf("Keywords have been loaded %d", len(options.Keywords))
-
-	// Lendo vários arquivos YAML e concatenando em um slice de structs
-	// Percorre o slice e exibe os dados do YAML de cada item
-
-	home, err := os.UserHomeDir()
-	if err != nil {
-		panic(err)
-	}
+	templates, _ := template.Find(options.Templates)
 
 	var keywords []string
-	var template types.Keywords
+	var tlds []string
+	var tags []string
 
-	for _, t := range options.Keywords {
-		directory := filepath.Join(home,".certwatcher-templates", t)
-		// Use directory here to access the template directory
-		log.Debug("template keywords directory", directory)
+	var template types.Templates
 
-		err := yaml.ReadYAML(directory, &template)
-		if err != nil {
-			log.Info(err)
-		}
+	for _, path := range templates {
 
-		keywords = append(keywords, template.Info.Keywords...)
+	    gologger.Debug().Msgf("template directory %s", path)
+
+	    err := yaml.ReadYAML(path, &template)
+	    if err != nil {
+	     	gologger.Fatal().Msgf("template error %s", err)
+	    }
+
+	    keywords = append(keywords, template.Info.Keywords...)
+	    tags = append(tags, template.Info.Classification.Tags...)
+	    
+	    // Convert the []struct to []string
+	    for _, tld := range template.Info.Tlds {
+	        tlds = append(tlds, tld.Pattern)
+	    }
+
+	    gologger.Debug().Msgf("A total of %d tlds have been loaded", len(tlds))
+	   
 	}
 
+	// Show how many templates have been loaded.
+
+	display := utils.JoinWithCommas(template.Info.Classification.Tags)
+	gologger.Info().Msgf("Templates have been loaded %d", len(options.Templates))
+	gologger.Info().Msgf("[%s] %s (%s) [%s]", aurora.Green(template.Info.ID), aurora.White(template.Info.Name), aurora.White(utils.JoinWithAt(template.Info.Author)), aurora.Cyan(display))
+	gologger.Info().Msgf("A total of %d keywords have been loaded", len(keywords))
+
+	// Show how many Tlds have been loaded.
+	if len(tlds) > 0 {
+		gologger.Info().Msgf("Matchers TLDs (Top-Level Domains) %d", len(tlds))
+	}
+
+	// Initializes the variable 'certs' with the value of zero.
 	certs := 0
-	tlds := len(template.Info.Tlds)
 
-	certStream := certstream.NewCertStream()
+	// Prints an informational message indicating that 
+	// the code is capturing certificates for analysis.
+	gologger.Info().Msgf("Capturing the certificates for analysis\n\n")
+	
+	// Capturing certificates from a CertStream, real-time 
+	// feed of newly issued SSL/TLS certificates.
+	certwatcher := certstream.NewCertStream()
+	
+	// Iterates over each certificate 
+	// event received from CertStream.
+	for event := range certwatcher.GetCertificates() { 
 
-	timerFunc := func() {
-		gologger.Info().Msgf("Number of certificates issued %d", certs)
-	}
-
-	// Define a duração do intervalo de tempo do timer
-	interval := 30 * time.Second
-
-	// Cria o timer e executa a função a cada intervalo de tempo
-	timer := time.NewTicker(interval)
-	defer timer.Stop()
-
-	if tlds > 0 {
-		gologger.Info().Msgf("Matchers TLDs (Top-Level Domains) %d", tlds)
-	}
-
-	gologger.Info().Msgf("Capturing the certificates for analysis")
-
-	for event := range certStream.GetCertificates() {
-
-		message := Data{
-			Domain:  event.Data.LeafCert.Subject.CN,
-			Options: event.Data.LeafCert.Extensions.SubjectAltName,
-			Issue: strings.Replace(event.Data.LeafCert.Extensions.AuthorityInfoAccess, "\n", "", -1),
+		// Converts the 'event.Data' object to JSON format and checks if there is any error.
+		_, err := json.MarshalIndent(event.Data, "", "  ")
+		if err != nil {
+			gologger.Fatal().Msgf("Error marshaling jq data to JSON")
 		}
-		
+
+		leafCert := event.Data.LeafCert
+		data := event.Data
+
+	    certificates := types.Message{
+	        Domain:     leafCert.Subject.CN,
+	        Domains:    leafCert.AllDomains,
+	        Aggregated: leafCert.Issuer.Aggregated,
+	        CaIssuer: 	strings.Replace(leafCert.Extensions.AuthorityInfoAccess, "\n", "", -1),
+	        Source:     data.Source.Name,
+	        SubjectAltName: leafCert.Extensions.SubjectAltName,
+	    }
+
+		// Prints a debug message indicating the origin of the event.
+		gologger.Debug().Msgf("Event receive from %s", certificates.Source)
+		gologger.Debug().Msgf("Number of certificates issued %d", certs)
+
+		// Iterates over each specified keyword.
 		for _, keyword := range keywords {
-			if matchers.Contains(message.Domain, keyword) {
-				hasMatch := false
-				
-				// Check if TLDs exist
-				if tlds > 0 {
-					// Check for TLD matches
-					for _, tld := range template.Info.Tlds {
-						if tld, _ := regexp.MatchString(tld.Pattern, message.Domain); tld {
-							logger(types.SSLDNSNames, types.DNS, severity.Info, message.Domain, string(message.Options))
-							logger(types.CAAIssuer, types.SSL, severity.Info, message.Domain, message.Issue)
-							logger(types.Keyword, keyword, severity.Info, message.Domain, string(message.Options))
-							hasMatch = true
-							break
-						}
-					}
-				}
+			// Check if the keyword matches the domain
+			if matchers.Contains(certificates.Domain, keyword) {
 
-				// Check for matcher matches, but only if no TLD match was found
-				if !hasMatch {
-					for _, matcher := range template.Info.Matchers {
-						if matched, _ := regexp.MatchString(matcher.Pattern, message.Domain); matched {
-							logger(types.SSLDNSNames, types.DNS, severity.Info, message.Domain, string(message.Options))
-							logger(types.CAAIssuer, types.SSL, severity.Info, message.Domain, message.Issue)
-							logger(types.Keyword, keyword, severity.Info, message.Domain, string(message.Options))
-							hasMatch = true
-							break
-						}
-					}
-				}
+				gologger.Info().Msgf("Suspicious Activity found at %s", time.Now().Format("01-02-2006 15:04:05"))
+				gologger.Info().Msgf("Number of certificates issued %d", certs)
 
-				// Handle the case where no TLD or matcher match was found
-				if !hasMatch {
-					logger(types.Keyword, keyword, severity.Info, message.Domain, "No TLD or Matcher match found in the template")
-				}
+				utils.Certificate(certificates, keyword, tlds)
 			}
 		}
-
+		// Increments the counter for the number of certificates processed.
 		certs++
-
-		select {
-		case <-timer.C:
-			timerFunc()
-		default:
-		}
 	}
 }

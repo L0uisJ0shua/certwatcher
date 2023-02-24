@@ -8,6 +8,8 @@ replace internal/colorizer => ./internal/colorizer
 
 replace pkg/config => ./pkg/config
 
+replace pkg/utils => ./pkg/utils
+
 replace pkg/certstream => ./pkg/certstream
 
 replace pkg/types => ./pkg/types
@@ -24,14 +26,16 @@ require (
 )
 
 require (
-	github.com/drfabiocastro/certwatcher/pkg/config v0.0.0-20230214182650-bfc73d3514ef
+	github.com/logrusorgru/aurora/v4 v4.0.0
 	github.com/projectdiscovery/goflags v0.1.6
 	github.com/projectdiscovery/nuclei/v2 v2.8.9
 	github.com/sirupsen/logrus v1.9.0
 	pkg/certstream v0.0.0-00010101000000-000000000000
+	pkg/config v0.0.0-00010101000000-000000000000
 	pkg/matchers v0.0.0-00010101000000-000000000000
 	pkg/templates v0.0.0-00010101000000-000000000000
 	pkg/types v0.0.0-00010101000000-000000000000
+	pkg/utils v0.0.0-00010101000000-000000000000
 	pkg/yamlreader v0.0.0-00010101000000-000000000000
 )
 
@@ -75,5 +79,4 @@ require (
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	internal/colorizer v0.0.0-00010101000000-000000000000 // indirect
-	pkg/config v0.0.0-00010101000000-000000000000 // indirect
 )

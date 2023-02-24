@@ -54,6 +54,7 @@ func (c *CertStream) GetCertificates() chan *CertStreamEvent {
 				if event.MessageType == "heartbeat" {
 					continue
 				}
+
 				certificates <- &event
 			}
 		}

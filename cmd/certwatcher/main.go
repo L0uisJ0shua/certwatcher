@@ -109,7 +109,7 @@ func main() {
 
 	display := utils.JoinWithCommas(template.Info.Classification.Tags)
 	gologger.Info().Msgf("Templates have been loaded %d", len(options.Templates))
-	gologger.Info().Msgf("[%s] %s (%s) [%s]", aurora.Green(template.Info.ID), aurora.White(template.Info.Name), aurora.White(utils.JoinWithAt(template.Info.Author)), aurora.Cyan(display))
+	gologger.Info().Msgf("[%s] %s (%s) [%s]", aurora.White(template.Info.ID), aurora.White(template.Info.Name), aurora.White(utils.JoinWithAt(template.Info.Author)), aurora.Cyan(display))
 	gologger.Info().Msgf("A total of %d keywords have been loaded", len(keywords))
 
 	// Show how many Tlds have been loaded.

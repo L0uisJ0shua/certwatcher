@@ -38,7 +38,7 @@ func Certificate(certificates types.Message, keyword string, tlds []string) {
     if len(tlds) > 0 {
         for _, tld := range tlds {
             if matched, _ := regexp.MatchString(tld, certificates.Domain); matched {
-                gologger.Info().Msgf("Domain %s matched TLD %s", certificates.Domain, tld)
+                gologger.Info().Msgf("Domain %s Matched TLDs (Top-Level Domains)", certificates.Domain)
                 Message(certificates, keyword, domains)
                 hasMatch = true
                 break
@@ -48,7 +48,7 @@ func Certificate(certificates types.Message, keyword string, tlds []string) {
 
     // Handle the case where no TLD or matcher match was found
     if !hasMatch {
-        gologger.Info().Msgf("No TLD or Matcher match found in the template")
+        gologger.Info().Msgf("No Domain Matched TLDs (Top-Level Domains)")
         Message(certificates, keyword, domains)
     }
 }

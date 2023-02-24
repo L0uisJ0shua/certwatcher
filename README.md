@@ -15,7 +15,7 @@ CertWatcher is a tool for capturing and tracking certificate transparency logs, 
 </p>
 <br>
 <p align="center">
-<img width="780" height="auto" src="https://user-images.githubusercontent.com/110246050/220726140-384703bc-3579-4561-87e1-dd1984c53c40.png">
+<img width="780" height="auto" src="/assets/templates.png">
 <br>
 
 </p>

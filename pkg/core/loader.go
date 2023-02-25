@@ -32,16 +32,14 @@ func Templates(options types.Options) ([]string, []string, []string) {
         for _, tld := range template.Info.Tlds {
             tlds = append(tlds, tld.Pattern)
         }
-
         gologger.Debug().Msgf("A total of %d tlds have been loaded", len(tlds))
+        display := utils.JoinWithCommas(template.Info.Classification.Tags)
+        gologger.Debug().Msgf("[%s] %s (%s) [%s]", aurora.White(template.Info.ID), aurora.White(template.Info.Name), aurora.White(utils.JoinWithAt(template.Info.Author)), aurora.Cyan(display))
 
     }
 
     // Show how many templates have been loaded.
-
-    display := utils.JoinWithCommas(template.Info.Classification.Tags)
     gologger.Info().Msgf("Templates have been loaded %d", len(options.Templates))
-    gologger.Info().Msgf("[%s] %s (%s) [%s]", aurora.White(template.Info.ID), aurora.White(template.Info.Name), aurora.White(utils.JoinWithAt(template.Info.Author)), aurora.Cyan(display))
     gologger.Info().Msgf("A total of %d keywords have been loaded", len(keywords))
 
     // Show how many Tlds have been loaded.

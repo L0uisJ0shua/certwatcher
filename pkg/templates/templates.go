@@ -36,13 +36,13 @@ func Find(templateID []string, additionalDirs ...string) ([]string, error) {
 			return nil
 		})
 		if err != nil {
-			log.Warnf("error searching for templates: %s", err.Error())
+			log.Fatalf("error searching for templates: %s", err.Error())
 		}
 	}
 
 	// If no templates were found, return an error
 	if len(templatePaths) == 0 {
-		log.Warnf("templates with IDs '%v' not found", templateID)
+		log.Fatalf("templates with IDs '%v' not found", templateID)
 	}
 
 	return templatePaths, nil

@@ -24,18 +24,18 @@ func Certificate(certificates types.Message, keyword string, tlds []string) {
     for _, tld := range tlds {
         if matched, _ := regexp.MatchString(tld, certificates.Domain); matched {
             gologger.Info().Msgf("Domain %s Matched TLDs (Top-Level Domains)", certificates.Domain)
-            Message(certificates, keyword, utils.JoinWithCommas(certificates.Domains), strings.Split(certificates.Issuer, ","))
+            Message(certificates, keyword, severity.Medium, utils.JoinWithCommas(certificates.Domains), strings.Split(certificates.Issuer, ","))
             return
         }
     }
 
     // Handle the case where no TLD or matcher match was found
     gologger.Info().Msgf("No Domain Matched TLDs (Top-Level Domains)")
-    Message(certificates, keyword, utils.JoinWithCommas(certificates.Domains), strings.Split(certificates.Issuer, ","))
+    Message(certificates, keyword, severity.Low, utils.JoinWithCommas(certificates.Domains), strings.Split(certificates.Issuer, ","))
 }
 
 // Message logs multiple messages using LogMsg
-func Message(certificates types.Message, keyword string, domains string, issuer []string) {
+func Message(certificates types.Message, keyword string, severity severity.Severity, domains string, issuer []string) {
     logs := []struct {
         id       string
         name     string
@@ -48,6 +48,6 @@ func Message(certificates types.Message, keyword string, domains string, issuer 
     }
 
     for _, log := range logs {
-        LogMsg(log.id, log.name, severity.Info, certificates.Domain, log.message)
+        LogMsg(log.id, log.name, severity, certificates.Domain, log.message)
     }
 }

@@ -11,7 +11,6 @@ import (
 	runner "internal/runner"
 	"pkg/certstream"
 	"pkg/matchers"
-	"encoding/json"
 	core "pkg/core"
 	"time"
 	_"fmt"
@@ -73,6 +72,7 @@ func main() {
 		gologger.DefaultLogger.SetMaxLevel(levels.LevelInfo)
 	
 	}
+
 	options := types.Options{
         Templates: options.Templates,
         // other options
@@ -81,24 +81,15 @@ func main() {
 
 	// // Initializes the variable 'certs' with the value of zero.
 	certs := 0
-
 	// // Prints an informational message indicating that 
 	// // the code is capturing certificates for analysis.
 	gologger.Info().Msgf("Capturing the certificates for analysis\n\n")
-	
 	// // Capturing certificates from a CertStream, real-time 
 	// // feed of newly issued SSL/TLS certificates.
 	certwatcher := certstream.NewCertStream()
-	
 	// // Iterates over each certificate 
 	// // event received from CertStream.
 	for event := range certwatcher.GetCertificates() { 
-
-	// 	// Converts the 'event.Data' object to JSON format and checks if there is any error.
-		_, err := json.MarshalIndent(event.Data, "", "  ")
-		if err != nil {
-			gologger.Fatal().Msgf("Error marshaling jq data to JSON")
-		}
 
 		leafCert := event.Data.LeafCert
 		data := event.Data

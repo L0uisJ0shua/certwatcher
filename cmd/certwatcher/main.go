@@ -6,18 +6,15 @@ import (
 	"github.com/projectdiscovery/gologger"
 	log "github.com/sirupsen/logrus"
 	"github.com/projectdiscovery/gologger/levels"
-	"github.com/logrusorgru/aurora/v4"
 	types "pkg/types"
 	config "pkg/config"
-	template "pkg/templates"
-	yaml "pkg/yamlreader"
 	runner "internal/runner"
-	certstream "pkg/certstream"
+	"pkg/certstream"
 	"pkg/matchers"
 	"encoding/json"
-	"pkg/utils"
 	core "pkg/core"
 	"time"
+	_"fmt"
 )
 
 var (
@@ -54,9 +51,9 @@ func main() {
 		flagSet.BoolVar(&options.Version, "version", false, "show certwatcher version"),
 	)
 
-	err := flagSet.Parse()
-
 	runner.Welcome()
+
+	err := flagSet.Parse()
 
 	if err != nil {
 		log.Fatalf("failed to parse command line flags: %s", err)
@@ -74,65 +71,30 @@ func main() {
 
 	if options.Verbose {
 		gologger.DefaultLogger.SetMaxLevel(levels.LevelInfo)
+	
 	}
+	options := types.Options{
+        Templates: options.Templates,
+        // other options
+    }
+    keywords, tlds, _ := core.Templates(options)
 
-	templates, _ := template.Find(options.Templates)
-
-	var keywords []string
-	var tlds []string
-	var tags []string
-
-	var template types.Templates
-
-	for _, path := range templates {
-
-	    gologger.Debug().Msgf("template directory %s", path)
-
-	    err := yaml.ReadYAML(path, &template)
-	    if err != nil {
-	     	gologger.Fatal().Msgf("template error %s", err)
-	    }
-
-	    keywords = append(keywords, template.Info.Keywords...)
-	    tags = append(tags, template.Info.Classification.Tags...)
-
-	    // Convert the []struct to []string
-	    for _, tld := range template.Info.Tlds {
-	        tlds = append(tlds, tld.Pattern)
-	    }
-
-	    gologger.Debug().Msgf("A total of %d tlds have been loaded", len(tlds))
-	   
-	}
-
-	// Show how many templates have been loaded.
-
-	display := utils.JoinWithCommas(template.Info.Classification.Tags)
-	gologger.Info().Msgf("Templates have been loaded %d", len(options.Templates))
-	gologger.Info().Msgf("[%s] %s (%s) [%s]", aurora.White(template.Info.ID), aurora.White(template.Info.Name), aurora.White(utils.JoinWithAt(template.Info.Author)), aurora.Cyan(display))
-	gologger.Info().Msgf("A total of %d keywords have been loaded", len(keywords))
-
-	// Show how many Tlds have been loaded.
-	if len(tlds) > 0 {
-		gologger.Info().Msgf("Matchers TLDs (Top-Level Domains) %d", len(tlds))
-	}
-
-	// Initializes the variable 'certs' with the value of zero.
+	// // Initializes the variable 'certs' with the value of zero.
 	certs := 0
 
-	// Prints an informational message indicating that 
-	// the code is capturing certificates for analysis.
+	// // Prints an informational message indicating that 
+	// // the code is capturing certificates for analysis.
 	gologger.Info().Msgf("Capturing the certificates for analysis\n\n")
 	
-	// Capturing certificates from a CertStream, real-time 
-	// feed of newly issued SSL/TLS certificates.
+	// // Capturing certificates from a CertStream, real-time 
+	// // feed of newly issued SSL/TLS certificates.
 	certwatcher := certstream.NewCertStream()
 	
-	// Iterates over each certificate 
-	// event received from CertStream.
+	// // Iterates over each certificate 
+	// // event received from CertStream.
 	for event := range certwatcher.GetCertificates() { 
 
-		// Converts the 'event.Data' object to JSON format and checks if there is any error.
+	// 	// Converts the 'event.Data' object to JSON format and checks if there is any error.
 		_, err := json.MarshalIndent(event.Data, "", "  ")
 		if err != nil {
 			gologger.Fatal().Msgf("Error marshaling jq data to JSON")

@@ -16,7 +16,7 @@ import (
 	"pkg/matchers"
 	"encoding/json"
 	"pkg/utils"
-	"strings"
+	core "pkg/core"
 	"time"
 )
 
@@ -95,7 +95,7 @@ func main() {
 
 	    keywords = append(keywords, template.Info.Keywords...)
 	    tags = append(tags, template.Info.Classification.Tags...)
-	    
+
 	    // Convert the []struct to []string
 	    for _, tld := range template.Info.Tlds {
 	        tlds = append(tlds, tld.Pattern)
@@ -144,8 +144,7 @@ func main() {
 	    certificates := types.Message{
 	        Domain:     leafCert.Subject.CN,
 	        Domains:    leafCert.AllDomains,
-	        Aggregated: leafCert.Issuer.Aggregated,
-	        CaIssuer: 	strings.Replace(leafCert.Extensions.AuthorityInfoAccess, "\n", "", -1),
+	        Issuer: leafCert.Issuer.O,
 	        Source:     data.Source.Name,
 	        SubjectAltName: leafCert.Extensions.SubjectAltName,
 	    }
@@ -162,7 +161,7 @@ func main() {
 				gologger.Info().Msgf("Suspicious Activity found at %s", time.Now().Format("01-02-2006 15:04:05"))
 				gologger.Info().Msgf("Number of certificates issued %d", certs)
 
-				utils.Certificate(certificates, keyword, tlds)
+				core.Certificate(certificates, keyword, tlds)
 			}
 		}
 		// Increments the counter for the number of certificates processed.

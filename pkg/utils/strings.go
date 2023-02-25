@@ -10,7 +10,6 @@ import (
     "fmt"
 )
 
-// JoinWithCommas junta uma lista de strings com vírgulas
 func JoinWithCommas(strs []string) string {
     return strings.Join(strs, ",")
 }

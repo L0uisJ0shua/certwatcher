@@ -6,13 +6,13 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// DefaultTemplateDir é o diretório padrão para buscar os arquivos de template
-var DefaultTemplateDir = filepath.Join(os.Getenv("HOME"), ".certwatcher-templates", "templates")
+// Directory é o diretório padrão para buscar os arquivos de template
+var Directory = filepath.Join(os.Getenv("HOME"), ".certwatcher-templates", "templates")
 
 // FindTemplateByID busca os templates com os IDs especificados em todas as pastas do diretório padrão e retorna o caminho dos arquivos YAML correspondentes
 func Find(templateID []string, additionalDirs ...string) ([]string, error) {
 	// Combine the default template directory with any additional directories to search
-	dirs := append([]string{DefaultTemplateDir}, additionalDirs...)
+	dirs := append([]string{Directory}, additionalDirs...)
 
 	// Search for the template files in each directory
 	templatePaths := make([]string, 0)

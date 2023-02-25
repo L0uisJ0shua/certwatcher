@@ -5,9 +5,8 @@ import "github.com/projectdiscovery/goflags"
 type Message struct {
     Domain       string
     Domains      []string
-    Aggregated   string
-    CaIssuer     string
-    Source       string
+    Issuer         string
+    Source         string
     SubjectAltName string
 }
 

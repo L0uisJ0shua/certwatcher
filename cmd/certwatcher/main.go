@@ -2,18 +2,14 @@ package main
 
 import (
 	"os"
-	"github.com/projectdiscovery/goflags"
-	"github.com/projectdiscovery/gologger"
-	log "github.com/sirupsen/logrus"
-	"github.com/projectdiscovery/gologger/levels"
+	goflags "github.com/projectdiscovery/goflags"
+	log "github.com/projectdiscovery/gologger"
+	levels "github.com/projectdiscovery/gologger/levels"
 	types "pkg/types"
 	config "pkg/config"
 	runner "internal/runner"
-	"pkg/certstream"
-	"pkg/matchers"
 	core "pkg/core"
-	"time"
-	_"fmt"
+	stream "pkg/stream"
 )
 
 var (
@@ -24,7 +20,7 @@ var (
 func init() {
 	// Configures the logger to print the name of the file and the line
 	// where the log was registered.
-	gologger.DefaultLogger.SetMaxLevel(levels.LevelInfo)
+	log.DefaultLogger.SetMaxLevel(levels.LevelInfo)
 }
 
 func main() {
@@ -55,69 +51,28 @@ func main() {
 	err := flagSet.Parse()
 
 	if err != nil {
-		log.Fatalf("failed to parse command line flags: %s", err)
+		log.Fatal().Msgf("failed to parse command line flags: %s", err)
 	}
 
 	if options.Version {
-	    gologger.Info().Msgf("Certwatcher version %s\n", config.Version)
+	    log.Info().Msgf("Certwatcher version %s\n", config.Version)
 	    os.Exit(0)
 	}
 
 	// Debug
 	if options.Debug {
-		gologger.DefaultLogger.SetMaxLevel(levels.LevelDebug)
+		log.DefaultLogger.SetMaxLevel(levels.LevelDebug)
 	}
 
 	if options.Verbose {
-		gologger.DefaultLogger.SetMaxLevel(levels.LevelInfo)
+		log.DefaultLogger.SetMaxLevel(levels.LevelInfo)
 	
 	}
 
 	options := types.Options{
         Templates: options.Templates,
-        // other options
     }
-    keywords, tlds, _ := core.Templates(options)
-
-	// // Initializes the variable 'certs' with the value of zero.
-	certs := 0
-	// // Prints an informational message indicating that 
-	// // the code is capturing certificates for analysis.
-	gologger.Info().Msgf("Capturing the certificates for analysis\n\n")
-	// // Capturing certificates from a CertStream, real-time 
-	// // feed of newly issued SSL/TLS certificates.
-	certwatcher := certstream.NewCertStream()
-	// // Iterates over each certificate 
-	// // event received from CertStream.
-	for event := range certwatcher.GetCertificates() { 
-
-		leafCert := event.Data.LeafCert
-		data := event.Data
-
-	    certificates := types.Message{
-	        Domain:     leafCert.Subject.CN,
-	        Domains:    leafCert.AllDomains,
-	        Issuer: leafCert.Issuer.O,
-	        Source:     data.Source.Name,
-	        SubjectAltName: leafCert.Extensions.SubjectAltName,
-	    }
-
-		// Prints a debug message indicating the origin of the event.
-		gologger.Debug().Msgf("Event receive from %s", certificates.Source)
-		gologger.Debug().Msgf("Number of certificates issued %d", certs)
-
-		// Iterates over each specified keyword.
-		for _, keyword := range keywords {
-			// Check if the keyword matches the domain
-			if matchers.Contains(certificates.Domain, keyword) {
-
-				gologger.Info().Msgf("Suspicious Activity found at %s", time.Now().Format("01-02-2006 15:04:05"))
-				gologger.Info().Msgf("Number of certificates issued %d", certs)
-
-				core.Certificate(certificates, keyword, tlds)
-			}
-		}
-		// Increments the counter for the number of certificates processed.
-		certs++
-	}
+	
+    keywords, tlds, matchers := core.Templates(options)
+	stream.Certificates(keywords, tlds, matchers)
 }

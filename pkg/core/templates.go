@@ -7,6 +7,7 @@ import (
     yaml "pkg/yamlreader"
 	template "pkg/templates"
     "strings"
+    "pkg/utils"
 )
 
 func Templates(options types.Options) ([]string, []string, []string) {
@@ -61,7 +62,7 @@ func Templates(options types.Options) ([]string, []string, []string) {
         for tag := range tagMap {
             tagSlice = append(tagSlice, tag)
         }
-        log.Info().Msgf("[%s] [%s]", aurora.Bold(id), aurora.BrightCyan(strings.Join(tagSlice, ", ")))
+        log.Info().Msgf("[%s] %s %s [%s]", aurora.Bold(id), aurora.Bold(template.Info.Name), aurora.Bold(utils.Author(template.Info.Author)), aurora.BrightCyan(strings.Join(tagSlice, ", ")))
     }
 
     log.Info().Msgf("A total of %d keywords have been loaded", len(keywords))

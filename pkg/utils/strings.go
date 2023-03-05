@@ -4,7 +4,7 @@ import (
     "strings"
 )
 
-func JoinWithAt(name string) string {
+func Author(name string) string {
     names := strings.Split(name, " ")
     var Author []string
     for _, name := range names {

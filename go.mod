@@ -86,5 +86,6 @@ require (
 	internal/colorizer v0.0.0-00010101000000-000000000000 // indirect
 	pkg/certstream v0.0.0-00010101000000-000000000000 // indirect
 	pkg/templates v0.0.0-00010101000000-000000000000 // indirect
+	pkg/utils v0.0.0-00010101000000-000000000000 // indirect
 	pkg/yamlreader v0.0.0-00010101000000-000000000000 // indirect
 )

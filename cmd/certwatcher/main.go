@@ -74,5 +74,6 @@ func main() {
     }
 	
     keywords, tlds, matchers := core.Templates(options)
+    
 	stream.Certificates(keywords, tlds, matchers)
 }

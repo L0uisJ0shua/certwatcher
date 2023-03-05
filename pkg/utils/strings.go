@@ -4,10 +4,6 @@ import (
     "strings"
 )
 
-func JoinWithCommas(strs []string) string {
-    return strings.Join(strs, ",")
-}
-
 func JoinWithAt(name string) string {
     names := strings.Split(name, " ")
     var Author []string

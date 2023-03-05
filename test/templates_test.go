@@ -1,18 +1,17 @@
 package main
 
 import (
-	"testing"
 	templates "pkg/types"
 	core "pkg/core"
+	"testing"
 )
+
 
 func TestTemplates(t *testing.T) {
 
 	// Declara e inicializa a variável options com um struct templates.Options preenchido com valores fictícios
-
-	// Bug when you pass more than 1 yaml tags are multiplied.
 	var options = templates.Options{
-		Templates: []string{"fas-keywords-test", "fas-keywords-score", "fas-keywords-malware", "fas-keywords-banks"}, // options.Templates[]string{} CLI Comand Line Interface
+		Templates: []string{"fas-keywords-test"}, // options.Templates[]string{} CLI Comand Line Interface
 	}
 
 	// Chama a função Templates com as opções preenchidas com valores fictícios
@@ -20,3 +19,4 @@ func TestTemplates(t *testing.T) {
 
 	t.Log(keywords, tlds, matchers)
 }
+

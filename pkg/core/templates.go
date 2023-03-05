@@ -5,7 +5,7 @@ import (
     "github.com/logrusorgru/aurora/v4"
     log "github.com/projectdiscovery/gologger"
     yaml "pkg/yamlreader"
-    template "pkg/templates"
+	template "pkg/templates"
     "strings"
 )
 
@@ -15,10 +15,10 @@ func Templates(options types.Options) ([]string, []string, []string) {
     templates, _ := template.Find(options.Templates)
 
     // Initialize a map to store tags for each loaded YAML
-    tagsMap := make(map[string][]string)
+    tagsMap := make(map[string]map[string]bool)
 
     // Initialize variables to store keywords, tlds, tags, matchers, and a template instance
-    var keywords, tlds, tags, matchers []string
+    var keywords, tlds, matchers []string
     var template types.Templates
 
     // Loop through each template and extract relevant information
@@ -28,36 +28,40 @@ func Templates(options types.Options) ([]string, []string, []string) {
             log.Fatal().Msgf("Template error %s", err)
         }
 
-         // Append tags to the tag map for the current template
+        // Append tags to the tag map for the current template
+        if _, ok := tagsMap[template.Info.ID]; !ok {
+            tagsMap[template.Info.ID] = make(map[string]bool)
+        }
         for _, tag := range template.Info.Classification.Tags {
-            tagsMap[template.Info.ID] = append(tagsMap[template.Info.ID], tag)
+            tagsMap[template.Info.ID][tag] = true
         }
 
         // Append keywords, tags, tlds, and matchers to their respective slices
         keywords = append(keywords, template.Info.Keywords...)
-        tags = append(tags, template.Info.Classification.Tags...)
         for _, tld := range template.Info.Tlds {
             tlds = append(tlds, tld.Pattern)
         }
         for _, matcher := range template.Info.Matchers {
             matchers = append(matchers, matcher.Pattern)
         }
+    }
 
-        // Print debug information about loaded TLDs
-        log.Debug().Msgf("%v %v", template.Info.Matchers, template.Info.Tlds)
-        log.Debug().Msgf("A total of %d tlds have been loaded", len(tlds))
+    // Create a slice with unique tags from the tag map
+    var tags []string
+    for _, tagMap := range tagsMap {
+        for tag := range tagMap {
+            tags = append(tags, tag)
+        }
     }
 
     // Print summary information about loaded templates, tags, and keywords
     log.Info().Msgf("Templates have been loaded %d", len(options.Templates))
-    for id, tags := range tagsMap {
-        log.Info().Msgf("[%s] [%s]", aurora.Bold(id), aurora.BrightCyan(strings.Join(tags, ", ")))
-    }
-
-    // Return the collected tags for each loaded YAML
-    var tag []string
-    for _, tags := range tagsMap {
-        tag = append(tag, tags...)
+    for id, tagMap := range tagsMap {
+        tagSlice := make([]string, 0, len(tagMap))
+        for tag := range tagMap {
+            tagSlice = append(tagSlice, tag)
+        }
+        log.Info().Msgf("[%s] [%s]", aurora.Bold(id), aurora.BrightCyan(strings.Join(tagSlice, ", ")))
     }
 
     log.Info().Msgf("A total of %d keywords have been loaded", len(keywords))

@@ -31,8 +31,10 @@ require (
 
 require (
 	github.com/projectdiscovery/goflags v0.1.6
+	github.com/projectdiscovery/nuclei/v2 v2.8.9
 	pkg/config v0.0.0-00010101000000-000000000000
 	pkg/core v0.0.0-00010101000000-000000000000
+	pkg/matchers v0.0.0-00010101000000-000000000000
 	pkg/stream v0.0.0-00010101000000-000000000000
 	pkg/types v0.0.0-00010101000000-000000000000
 )
@@ -63,9 +65,9 @@ require (
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/nwaples/rardecode v1.1.2 // indirect
+	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
 	github.com/pierrec/lz4 v2.6.1+incompatible // indirect
 	github.com/pkg/errors v0.9.1 // indirect
-	github.com/projectdiscovery/nuclei/v2 v2.8.9 // indirect
 	github.com/projectdiscovery/utils v0.0.9 // indirect
 	github.com/saintfish/chardet v0.0.0-20230101081208-5e3ef4b5456d // indirect
 	github.com/sirupsen/logrus v1.9.0 // indirect
@@ -83,8 +85,6 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	internal/colorizer v0.0.0-00010101000000-000000000000 // indirect
 	pkg/certstream v0.0.0-00010101000000-000000000000 // indirect
-	pkg/matchers v0.0.0-00010101000000-000000000000 // indirect
 	pkg/templates v0.0.0-00010101000000-000000000000 // indirect
-	pkg/utils v0.0.0-00010101000000-000000000000 // indirect
 	pkg/yamlreader v0.0.0-00010101000000-000000000000 // indirect
 )

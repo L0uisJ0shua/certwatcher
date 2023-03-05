@@ -8,12 +8,8 @@ on:
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
-
     steps:
-    - uses: actions/checkout@v3
-    - name: Build
-      run: make
-    - name: Install
+    - uses: actions/checkout@v2
+    - name: Install dependencies
       run: sudo make install

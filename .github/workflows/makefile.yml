@@ -18,4 +18,4 @@ jobs:
       - name: Build module
         run: make
       - name: Install module
-        run: make install
+        run: sudo make install

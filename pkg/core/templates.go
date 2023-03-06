@@ -22,12 +22,23 @@ func Templates(options types.Options) ([]string, []string, []string) {
     var keywords, tlds, matchers []string
     var template types.Templates
 
+    // Initialize a map to keep track of processed templates
+    processedTemplates := make(map[string]bool)
+
     // Loop through each template and extract relevant information
     for _, path := range templates {
         // Read the YAML file and unmarshal into the template instance
+        var currentTemplate string
         if err := yaml.ReadYAML(path, &template); err != nil {
             log.Fatal().Msgf("Template error %s", err)
         }
+
+        // Skip processing if template has already been processed
+        if processedTemplates[template.Info.ID] {
+            continue
+        }
+
+        currentTemplate = template.Info.Name
 
         // Append tags to the tag map for the current template
         if _, ok := tagsMap[template.Info.ID]; !ok {
@@ -45,6 +56,16 @@ func Templates(options types.Options) ([]string, []string, []string) {
         for _, matcher := range template.Info.Matchers {
             matchers = append(matchers, matcher.Pattern)
         }
+
+        // Print information about the current template
+        tagSlice := make([]string, 0, len(tagsMap[template.Info.ID]))
+        for tag := range tagsMap[template.Info.ID] {
+            tagSlice = append(tagSlice, tag)
+        }
+        log.Info().Msgf("[%s] %s %s [%s]", aurora.Bold(template.Info.ID), aurora.Bold(currentTemplate), aurora.Bold(utils.Author(template.Info.Author)), aurora.BrightCyan(strings.Join(tagSlice, ", ")))
+
+        // Mark template as processed
+        processedTemplates[template.Info.ID] = true
     }
 
     // Create a slice with unique tags from the tag map
@@ -56,22 +77,17 @@ func Templates(options types.Options) ([]string, []string, []string) {
     }
 
     // Print summary information about loaded templates, tags, and keywords
-    log.Info().Msgf("Templates have been loaded %d", len(options.Templates))
-    for id, tagMap := range tagsMap {
-        tagSlice := make([]string, 0, len(tagMap))
-        for tag := range tagMap {
-            tagSlice = append(tagSlice, tag)
-        }
-        log.Info().Msgf("[%s] %s %s [%s]", aurora.Bold(id), aurora.Bold(template.Info.Name), aurora.Bold(utils.Author(template.Info.Author)), aurora.BrightCyan(strings.Join(tagSlice, ", ")))
-    }
-
+    log.Info().Msgf("Templates have been loaded: %d", len(options.Templates))
     log.Info().Msgf("A total of %d keywords have been loaded", len(keywords))
+    log.Info().Msgf("A total of %d unique tags have been loaded", len(tags))
 
     // Print summary information about loaded TLDs if any have been loaded
     if len(tlds) > 0 {
-        log.Info().Msgf("Matchers TLDs (Top-Level Domains) %d", len(tlds))
+        log.Info().Msgf("A total of %d TLDs (Top-Level Domains) have been loaded", len(tlds))
     }
 
     // Return the collected keywords, tlds, and matchers
     return keywords, tlds, matchers
 }
+
+

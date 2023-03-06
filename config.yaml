@@ -1,0 +1,14 @@
+log:
+  file: /var/log/certwatcher.log
+  level: info
+stream:
+  certstream:
+    mode: live
+  domains:
+    - example.com
+    - www.example.com
+matchers:
+  - tlds
+  - keywords
+templates:
+  - slack

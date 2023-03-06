@@ -52,10 +52,10 @@ func (m *Matcher) Match(certificates types.Message, keywords, tlds, matchers []s
         url := fmt.Sprintf("https://%s", domain)
         var matcherMatched string
         // Verifica se a resposta já está em cache.
-        if cachedResponse, ok := c.Get(url); ok {
+        if cached, ok := c.Get(url); ok {
             // Se a resposta estiver em cache, utiliza a resposta armazenada em cache.
             log.Info().Msgf("Found cached response for url %s", url)
-            doc, err := goquery.NewDocumentFromReader(bytes.NewReader(cachedResponse.([]byte)))
+            doc, err := goquery.NewDocumentFromReader(bytes.NewReader(cached.([]byte)))
             if err != nil {
                 log.Warning().Msgf("error parsing cached response for url %s: %s", url, err)
                 return
@@ -77,7 +77,7 @@ func (m *Matcher) Match(certificates types.Message, keywords, tlds, matchers []s
         } else {
             // Se a resposta não estiver em cache, faz a requisição HTTP.
             client := &http.Client{
-                Timeout: 60 * time.Second,
+                Timeout: 15 * time.Second,
             }
 
             req, err := http.NewRequest("GET", url, nil)

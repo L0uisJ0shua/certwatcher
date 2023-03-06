@@ -7,7 +7,7 @@ import (
 )
 
 // Directory é o diretório padrão para buscar os arquivos de template
-var Directory = filepath.Join(os.Getenv("HOME"), ".certwatcher-templates", "templates")
+var Directory = filepath.Join(os.Getenv("HOME"), "certwatcher-templates", "templates")
 
 // FindTemplateByID busca os templates com os IDs especificados em todas as pastas do diretório padrão e retorna o caminho dos arquivos YAML correspondentes
 func Find(templateID []string, additionalDirs ...string) ([]string, error) {

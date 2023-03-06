@@ -30,7 +30,7 @@ func Certificates(keywords []string, tlds []string, matcher []string) {
 			Domains:        event.Data.LeafCert.AllDomains,
 			Issuer:         event.Data.LeafCert.Issuer.O,
 			Source:         event.Data.Source.Name,
-			SubjectAltName: event.Data.LeafCert.Extensions.SubjectAltName,
+			SubjectAltName: event.Data.LeafCert.Issuer.Aggregated,
 		}
 		
 		// Checks if the certificate domain matches any of the specified keywords.

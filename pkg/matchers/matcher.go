@@ -161,6 +161,7 @@ func (m *Matcher) Match(certificates types.Message, keywords, tlds, matchers []s
         }
 
         if len(keywdors) > 0 {
+            log.Info().Msgf("Suspicious activity found at %s\n", time.Now().Format("01-02-2006 15:04:05"))
             log.Info().Msgf("Number of certificates issued: %d\n", certs)
             if len(matcherMatched) > 0 {
                 log.Info().Msgf("Matching regular expression found: %s", matcherMatched)

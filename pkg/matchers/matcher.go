@@ -50,6 +50,7 @@ func (m *Matcher) Match(certificates types.Message, keywords, tlds, matchers []s
 
         // Monta a URL para a requisição.
         url := fmt.Sprintf("https://%s", domain)
+
         var matcherMatched string
         // Verifica se a resposta já está em cache.
         if cached, ok := c.Get(url); ok {
@@ -57,7 +58,7 @@ func (m *Matcher) Match(certificates types.Message, keywords, tlds, matchers []s
             log.Info().Msgf("Found cached response for url %s", url)
             doc, err := goquery.NewDocumentFromReader(bytes.NewReader(cached.([]byte)))
             if err != nil {
-                log.Warning().Msgf("error parsing cached response for url %s: %s", url, err)
+                log.Warning().Msgf("Error parsing cached response for url %s: %s", url, err)
                 return
             }
             // Verifica se há correspondência com os matchers utilizando expressões regulares.
@@ -77,18 +78,18 @@ func (m *Matcher) Match(certificates types.Message, keywords, tlds, matchers []s
         } else {
             // Se a resposta não estiver em cache, faz a requisição HTTP.
             client := &http.Client{
-                Timeout: 15 * time.Second,
+                Timeout: 30 * time.Second,
             }
 
             req, err := http.NewRequest("GET", url, nil)
             if err != nil {
-                log.Warning().Msgf("error creating HTTP request for url %s: %s", url, err)
+                log.Warning().Msgf("Error creating HTTP request for url %s: %s", url, err)
                 return
             }
 
             resp, err := client.Do(req)
             if err != nil {
-                log.Warning().Msgf("error fetching HTTP response for url %s: %s", url, err)
+                log.Warning().Msgf("Error fetching HTTP response for url %s: %s", url, err)
                 return
             }
             defer resp.Body.Close()
@@ -96,13 +97,12 @@ func (m *Matcher) Match(certificates types.Message, keywords, tlds, matchers []s
             // Lê o corpo da resposta e armazena em um buffer de bytes
             bodyBytes, err := ioutil.ReadAll(resp.Body)
             if err != nil {
-                log.Warning().Msgf("error reading response body for domain %s: %s", url, err)
+                log.Warning().Msgf("Error reading response body for domain %s: %s", url, err)
                 return
             }
 
             // Cria um bytes.Reader para o conteúdo do corpo da resposta
             bodyReader := bytes.NewReader(bodyBytes)
-
 
             // Faz o parse do response utilizando o goquery
             doc, err := goquery.NewDocumentFromReader(bodyReader)
@@ -116,10 +116,8 @@ func (m *Matcher) Match(certificates types.Message, keywords, tlds, matchers []s
 
             // Verifica se há correspondência com os matchers utilizando expressões regulares.
             for _, matcher := range m.Matchers {
-                log.Debug().Msgf("Checking for matcher %s", matcher)
                 re, err := regexp.Compile(matcher)
                 if err != nil {
-                    log.Debug().Msgf("Error %s found on %s", matcher, err)
                     continue
                 }
                 if re.MatchString(doc.Text()) {
@@ -132,7 +130,6 @@ func (m *Matcher) Match(certificates types.Message, keywords, tlds, matchers []s
         // Verifica se o domínio do objeto certificates termina com algum TLD.
         var tldMatched bool
         for _, tld := range m.TLDs {
-            log.Debug().Msgf("Checking for %s", tld)
             if hasTLD(certificates.Domain, tld) {
                 log.Debug().Msgf("Domain %s matched TLDs (Top-Level Domains)", url)
                 // Incrementa patterns em 1 se houver uma correspondência e sai do loop.
@@ -144,7 +141,6 @@ func (m *Matcher) Match(certificates types.Message, keywords, tlds, matchers []s
         var keywdors string
         // Verifica se o campo SubjectAltName do objeto certificates contém alguma palavra-chave.
         for _, keyword := range m.Keywords {
-            log.Debug().Msgf("Checking for keywords %s", keyword)
             if strings.Contains(certificates.Domain, keyword) {
                 // Incrementa patterns em 1 se houver uma correspondência e sai do loop.
                 keywdors = keyword

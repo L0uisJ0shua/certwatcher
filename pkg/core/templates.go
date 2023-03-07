@@ -62,6 +62,7 @@ func Templates(options types.Options) ([]string, []string, []string) {
         for tag := range tagsMap[template.Info.ID] {
             tagSlice = append(tagSlice, tag)
         }
+        
         log.Info().Msgf("[%s] %s %s [%s]", aurora.Bold(template.Info.ID), aurora.Bold(currentTemplate), aurora.Bold(utils.Author(template.Info.Author)), aurora.BrightCyan(strings.Join(tagSlice, ", ")))
 
         // Mark template as processed
@@ -77,9 +78,13 @@ func Templates(options types.Options) ([]string, []string, []string) {
     }
 
     // Print summary information about loaded templates, tags, and keywords
-    log.Info().Msgf("Templates have been loaded: %d", len(options.Templates))
-    log.Info().Msgf("A total of %d keywords have been loaded", len(keywords))
-    log.Info().Msgf("A total of %d unique tags have been loaded", len(tags))
+    if len(options.Templates) > 0 {
+        log.Info().Msgf("Templates have been loaded: %d", len(options.Templates))
+        log.Info().Msgf("A total of %d keywords have been loaded", len(keywords))
+        log.Info().Msgf("A total of %d unique tags have been loaded", len(tags))
+    } else {
+       log.Fatal().Msg("Templates with IDs not found")
+    }
 
     // Print summary information about loaded TLDs if any have been loaded
     if len(tlds) > 0 {

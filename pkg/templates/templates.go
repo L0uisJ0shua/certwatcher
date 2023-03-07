@@ -1,11 +1,9 @@
 package templates
 
 import (
-	"errors"
 	"os"
 	"path/filepath"
-
-	log "github.com/sirupsen/logrus"
+	log "github.com/projectdiscovery/gologger"
 )
 
 // Directory é o diretório padrão para buscar os arquivos de template
@@ -13,26 +11,26 @@ var Directory = filepath.Join(os.Getenv("HOME"), "certwatcher-templates", "templ
 
 // FindTemplateByID busca os templates com os IDs especificados em todas as pastas do diretório padrão e em quaisquer pastas adicionais especificadas, retornando os caminhos dos arquivos YAML correspondentes.
 func Find(templateID []string, additionalDirs ...string) ([]string, error) {
-	// Combine o diretório padrão de template com quaisquer diretórios adicionais a serem pesquisados
+	// Combine the default template directory with any additional directories to be searched
 	dirs := append([]string{Directory}, additionalDirs...)
 
-	// Crie um mapa para armazenar os caminhos dos arquivos de template encontrados
+	// Create a map to store the paths of found template files
 	templatePaths := make(map[string]string)
 
-	// Pesquise os arquivos de template em cada diretório especificado
+	// Search for template files in each specified directory
 	for _, dir := range dirs {
 		err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 			if err != nil {
-				return err
+				log.Info().Msgf("Error searching for templates: %s", err)
 			}
 			if !info.IsDir() && filepath.Ext(path) == ".yaml" {
-				// Obtenha o nome do arquivo sem a extensão
+				// Get the filename without the extension
 				filename := filepath.Base(path[:len(path)-len(filepath.Ext(path))])
 
-				// Verifique se o nome do arquivo corresponde a um dos IDs de template especificados
+				// Check if the filename matches one of the specified template IDs
 				for _, id := range templateID {
 					if filename == id {
-						// Se o arquivo corresponder, armazene o caminho completo do arquivo no mapa
+						// If the file matches, store the full path to the file in the map
 						templatePaths[id] = path
 					}
 				}
@@ -40,22 +38,23 @@ func Find(templateID []string, additionalDirs ...string) ([]string, error) {
 			return nil
 		})
 		if err != nil {
-			log.Fatalf("Erro ao pesquisar por templates: %s", err.Error())
+			log.Info().Msgf("Error searching for templates: %s", err.Error())
 		}
 	}
 
-	// Verifique se foram encontrados arquivos de template para cada ID de template especificado
+	// Check if template files were found for each specified template ID
 	missingTemplates := make([]string, 0)
 	for _, id := range templateID {
 		if _, ok := templatePaths[id]; !ok {
 			missingTemplates = append(missingTemplates, id)
 		}
 	}
+
 	if len(missingTemplates) > 0 {
-		return nil, errors.New("Templates com IDs " + string(missingTemplates[0]) + " não encontrados")
+		log.Fatal().Msgf("Templates with IDs %s not found", missingTemplates)
 	}
 
-	// Converta o mapa de caminhos de arquivo para uma slice de caminhos de arquivo ordenados pelos IDs de template fornecidos
+	// Convert the map of file paths to a slice of file paths sorted by the specified template IDs
 	sortedTemplatePaths := make([]string, len(templateID))
 	for i, id := range templateID {
 		sortedTemplatePaths[i] = templatePaths[id]

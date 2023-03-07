@@ -33,6 +33,7 @@ func main() {
 		flagSet.StringSliceVarP(&options.Templates, "template", "t", nil, "List of template or template directory to run (comma-separated, file)", goflags.FileCommaSeparatedStringSliceOptions),
 		flagSet.BoolVar(&options.Validate, "validate", false, "Validate the passed templates to certwatcher"),
 	)
+
 	// Browser configs
 	flagSet.CreateGroup("headless", "Headless",
 		flagSet.BoolVar(&options.Headless, "headless", false, "Enable templates that require headless browser support (root user on Linux will disable sandbox)"),

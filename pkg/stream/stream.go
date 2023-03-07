@@ -60,7 +60,6 @@ func Certificates(keywords []string, tlds []string, matcher []string) {
 		logMessage := fmt.Sprintf(" Certificates emitted: %d\n", certs)
 		s.Suffix = logMessage
 	}
-
 	// Stop the spinner
 	s.Stop()
 }

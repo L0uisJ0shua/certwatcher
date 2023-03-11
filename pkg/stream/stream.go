@@ -28,7 +28,7 @@ func Certificates(keywords []string, tlds []string, matcher []string) {
 	go func() {
 		s.Start()
 		for {
-			<-time.Tick(30 * time.Second)
+			<-time.Tick(60 * time.Second)
 			s.Restart()
 		}
 	}()

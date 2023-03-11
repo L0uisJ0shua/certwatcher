@@ -21,7 +21,7 @@ func Find(templateID []string, additionalDirs ...string) ([]string, error) {
 	for _, dir := range dirs {
 		err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 			if err != nil {
-				log.Info().Msgf("Error searching for templates: %s", err)
+				log.Fatal().Msgf("Error directory templates not found %s", err)
 			}
 			if !info.IsDir() && filepath.Ext(path) == ".yaml" {
 				// Get the filename without the extension
@@ -37,6 +37,7 @@ func Find(templateID []string, additionalDirs ...string) ([]string, error) {
 			}
 			return nil
 		})
+		
 		if err != nil {
 			log.Info().Msgf("Error searching for templates: %s", err.Error())
 		}

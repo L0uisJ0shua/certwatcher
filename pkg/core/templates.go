@@ -80,8 +80,12 @@ func Templates(options types.Options) ([]string, []string, []string) {
     // Print summary information about loaded templates, tags, and keywords
     if len(options.Templates) > 0 {
         log.Info().Msgf("Templates have been loaded: %d", len(options.Templates))
-        log.Info().Msgf("A total of %d keywords have been loaded", len(keywords))
-        log.Info().Msgf("A total of %d unique tags have been loaded", len(tags))
+        if len(keywords) > 0 {
+            log.Info().Msgf("A total of %d keywords have been loaded", len(keywords))
+        } else if len(tags) > 0 {
+            log.Info().Msgf("A total of %d unique tags have been loaded", len(tags))
+        } 
+        log.Info().Msgf("A total of %d unique matchers have been loaded", len(matchers))
     } else {
        log.Fatal().Msg("Templates with IDs not found")
     }

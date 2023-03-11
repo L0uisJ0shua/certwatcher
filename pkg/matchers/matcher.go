@@ -43,7 +43,7 @@ func (m *Matcher) Match(certificates types.Message, keywords, tlds, matchers []s
         patterns := 0
 
         // Cria o cache com uma expiração padrão de 5 minutos.
-        c := cache.New(5*time.Minute, 10*time.Minute)
+        c := cache.New(30*time.Second, 60*time.Second)
 
         // Remove o "*" prefixo do domínio e armazena em 'domain'.
         domain := strings.Replace(certificates.Domain, "*.", "", -1)
@@ -167,7 +167,16 @@ func (m *Matcher) Match(certificates types.Message, keywords, tlds, matchers []s
                 log.Info().Msg("Domain matched TLDs (Top-Level Domains)")
             }
             core.Log(certificates, keywdors, levels, tlds, matchers)
-        }
+        } else {
+          
+            if len(matcherMatched) > 0 {
+                log.Info().Msgf("Pattern successfully found %s", time.Now().Format("01-02-2006 15:04:05"))
+                log.Info().Msgf("Number of certificates issued: %d\n", certs)
+                log.Info().Msgf("Matching regular expression found: %s", matcherMatched)
+                core.Log(certificates, keywdors, severity.High, tlds, matchers)
+                return
+            }
+        }   
  
     }()
 }

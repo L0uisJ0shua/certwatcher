@@ -34,16 +34,53 @@ func Msg(certificates types.Message, keyword string, severity severity.Severity,
         Log: "log",
     }
 
-    logs := []struct {
+    var logs []struct {
+        id      string
+        name    string
+        message []string
+    }
+
+    logs = append(logs, struct {
         id      string
         name    string
         message []string
     }{
-        {"ssl-dns-names", protocols.DNS, strings.Split(domains, " ")},
-        {"ssl-issuer", protocols.SSL, issuer},
-        {"keyword", keyword, strings.Split(certificates.SubjectAltName, " ")},
-        {"source", protocols.Log, strings.Split(certificates.Source, " ")},
+        id:      "ssl-dns-names",
+        name:    protocols.DNS,
+        message: strings.Split(domains, " "),
+    })
+    logs = append(logs, struct {
+        id      string
+        name    string
+        message []string
+    }{
+        id:      "ssl-issuer",
+        name:    protocols.SSL,
+        message: issuer,
+    })
+
+    // Verifica se a string de keyword é vazia
+    if len(keyword) > 0 {
+        logs = append(logs, struct {
+            id      string
+            name    string
+            message []string
+        }{
+            id:      "keyword",
+            name:    keyword,
+            message: strings.Split(certificates.SubjectAltName, " "),
+        })
     }
+
+    logs = append(logs, struct {
+        id      string
+        name    string
+        message []string
+    }{
+        id:      "source",
+        name:    protocols.Log,
+        message: strings.Split(certificates.Source, " "),
+    })
 
     for _, log := range logs {
         LogMessage(log.id, log.name, severity, certificates.Domain, log.message)

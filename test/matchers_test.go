@@ -7,6 +7,7 @@ import (
 )
 
 func TestMatcher(t *testing.T) {
+
     keywords := []string{"apple", "amazon", "bradesco"}
     tlds := []string{"net", "org", "com"}
     matchers := []string{"IETFIETF", "amazon", "bradesco"}
@@ -24,7 +25,7 @@ func TestMatcher(t *testing.T) {
         Source:         "Amazon",
     }
 
-    template.Match(certificates, keywords, tlds, matchers, certs)
+    template.Match(certificates, keywords, tlds, matchers, certs, "Laravel Debug Method Enabled", "High")
 
     // Match a certificate with a matching TLD and matcher
     certificates = types.Message{
@@ -34,7 +35,8 @@ func TestMatcher(t *testing.T) {
         Issuer:         "IETF Issuer",
         Source:         "IETF Domain",
     }
-    template.Match(certificates, keywords, tlds, matchers, certs)
+   
+    template.Match(certificates, keywords, tlds, matchers, certs, "Laravel Debug Method Enabled", "High")
 
     // Match a certificate with a matching TLD and keyword
     certificates = types.Message{
@@ -44,7 +46,8 @@ func TestMatcher(t *testing.T) {
         Issuer:         "Apple Issuer",
         Source:         "Lets Encrypt",
     }
-    template.Match(certificates, keywords, tlds, matchers, certs)
+    
+    template.Match(certificates, keywords, tlds, matchers, certs, "Laravel Debug Method Enabled", "High")
 
     // Match a certificate with a matching TLD, keyword, and matcher
     certificates = types.Message{
@@ -55,6 +58,6 @@ func TestMatcher(t *testing.T) {
         Source:         "Google Domain",
     }
 
-    template.Match(certificates, keywords, tlds, matchers, certs)
+    template.Match(certificates, keywords, tlds, matchers, certs, "Laravel Debug Method Enabled", "High")
 }
 

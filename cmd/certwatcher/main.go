@@ -74,7 +74,7 @@ func main() {
         Templates: options.Templates,
     }
 	
-    keywords, tlds, matchers := core.Templates(options)
+    keywords, tlds, matchers, description, severity := core.Templates(options)
     
-	stream.Certificates(keywords, tlds, matchers)
+	stream.Certificates(keywords, tlds, matchers, description, severity)
 }

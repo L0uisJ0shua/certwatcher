@@ -8,22 +8,43 @@ import (
 	template "pkg/templates"
     "strings"
     "pkg/utils"
+    "internal/colorizer"
+    "fmt"
 )
 
-func Templates(options types.Options) ([]string, []string, []string) {
+func LoadTemplates(template types.Templates, currentTemplate string, tagSlice []string) {
+    severity := template.Info.Severity
+    colorizeSeverity := colorizer.New()
+
+    logMsg := fmt.Sprintf("[%s] %s [%s] %s [%s]",
+        aurora.Bold(template.Info.ID),
+        aurora.Bold(currentTemplate),
+        colorizeSeverity(severity),
+        aurora.Bold(utils.Author(template.Info.Author)),
+        aurora.BrightCyan(strings.Join(tagSlice, ", ")))
+
+    log.Info().Msg(logMsg)
+}
+
+
+
+func Templates(options types.Options) ([]string, []string, []string, string, string) {
 
     // Find templates using the given options
     templates, _ := template.Find(options.Templates)
+
+    log.Debug().Msgf("%s", templates)
 
     // Initialize a map to store tags for each loaded YAML
     tagsMap := make(map[string]map[string]bool)
 
     // Initialize variables to store keywords, tlds, tags, matchers, and a template instance
     var keywords, tlds, matchers []string
+    var severity, description string
     var template types.Templates
 
     // Initialize a map to keep track of processed templates
-    processedTemplates := make(map[string]bool)
+    processed := make(map[string]bool)
 
     // Loop through each template and extract relevant information
     for _, path := range templates {
@@ -34,7 +55,7 @@ func Templates(options types.Options) ([]string, []string, []string) {
         }
 
         // Skip processing if template has already been processed
-        if processedTemplates[template.Info.ID] {
+        if processed[template.Info.ID] {
             continue
         }
 
@@ -62,11 +83,11 @@ func Templates(options types.Options) ([]string, []string, []string) {
         for tag := range tagsMap[template.Info.ID] {
             tagSlice = append(tagSlice, tag)
         }
-        
-        log.Info().Msgf("[%s] %s %s [%s]", aurora.Bold(template.Info.ID), aurora.Bold(currentTemplate), aurora.Bold(utils.Author(template.Info.Author)), aurora.BrightCyan(strings.Join(tagSlice, ", ")))
+
+        LoadTemplates(template, currentTemplate, tagSlice)
 
         // Mark template as processed
-        processedTemplates[template.Info.ID] = true
+        processed[template.Info.ID] = true
     }
 
     // Create a slice with unique tags from the tag map
@@ -78,16 +99,16 @@ func Templates(options types.Options) ([]string, []string, []string) {
     }
 
     // Print summary information about loaded templates, tags, and keywords
-    if len(options.Templates) > 0 {
-        log.Info().Msgf("Templates have been loaded: %d", len(options.Templates))
+    if len(options.Templates) > 0 && len(matchers) > 0 {
+    log.Info().Msgf("Templates have been loaded: %d", len(options.Templates))
         if len(keywords) > 0 {
             log.Info().Msgf("A total of %d keywords have been loaded", len(keywords))
         } else if len(tags) > 0 {
             log.Info().Msgf("A total of %d unique tags have been loaded", len(tags))
         } 
-        log.Info().Msgf("A total of %d unique matchers have been loaded", len(matchers))
+        log.Info().Msgf("A total of %d unique matchers have been loaded", len(matchers)) 
     } else {
-       log.Fatal().Msg("Templates with IDs not found")
+        log.Fatal().Msg("No templates or matchers found")
     }
 
     // Print summary information about loaded TLDs if any have been loaded
@@ -96,7 +117,7 @@ func Templates(options types.Options) ([]string, []string, []string) {
     }
 
     // Return the collected keywords, tlds, and matchers
-    return keywords, tlds, matchers
+    return keywords, tlds, matchers, description, severity
 }
 
 

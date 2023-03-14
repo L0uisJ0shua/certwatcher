@@ -12,7 +12,7 @@ import (
 
 // Function that captures certificates from a CertStream, a real-time feed of newly issued SSL/TLS certificates.
 // It takes a slice of keywords to check against the domain name of each certificate received and a list of valid TLDs.
-func Certificates(keywords []string, tlds []string, matcher []string) {
+func Certificates(keywords []string, tlds []string, matcher []string, description string,  severity string) {
 
 	// Initializes the variable 'certs' with the value of zero.
 	certs := 0
@@ -54,7 +54,7 @@ func Certificates(keywords []string, tlds []string, matcher []string) {
 
 		// Checks if the certificate domain matches any of the specified keywords.
 		template := match.New(keywords, tlds, matcher)
-		template.Match(certificates, keywords, tlds, matcher, certs)
+		template.Match(certificates, keywords, tlds, matcher, certs, description, severity)
 
 		// Update the spinner message with the number of certificates emitted
 		logMessage := fmt.Sprintf(" Certificates emitted: %d\n", certs)

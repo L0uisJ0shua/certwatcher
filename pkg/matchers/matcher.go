@@ -36,14 +36,15 @@ func New(keywords, tlds, matchers []string) *Matcher {
     }
 }
 
-func (m *Matcher) Match(certificates types.Message, keywords, tlds, matchers []string, certs int) {
+func (m *Matcher) Match(certificates types.Message, keywords, tlds, matchers []string, certs int, description string, sev string) {
 
     go func() {
+
         // Inicializa a variável patterns com o valor 0.
         patterns := 0
 
         // Cria o cache com uma expiração padrão de 5 minutos.
-        c := cache.New(30*time.Second, 60*time.Second)
+        c := cache.New(60*time.Second, 160*time.Second)
 
         // Remove o "*" prefixo do domínio e armazena em 'domain'.
         domain := strings.Replace(certificates.Domain, "*.", "", -1)
@@ -63,10 +64,9 @@ func (m *Matcher) Match(certificates types.Message, keywords, tlds, matchers []s
             }
             // Verifica se há correspondência com os matchers utilizando expressões regulares.
             for _, matcher := range m.Matchers {
-                log.Debug().Msgf("Checking for matcher %s", matcher)
                 re, err := regexp.Compile(matcher)
                 if err != nil {
-                    log.Warning().Msgf("Erro ao compilar expressão regular %s: %s", matcher, err)
+                    log.Warning().Msgf("%s", err)
                     continue
                 }
                 if re.MatchString(doc.Text()) {
@@ -83,13 +83,13 @@ func (m *Matcher) Match(certificates types.Message, keywords, tlds, matchers []s
 
             req, err := http.NewRequest("GET", url, nil)
             if err != nil {
-                log.Warning().Msgf("Error creating HTTP request for url %s: %s", url, err)
+                log.Silent().Msgf("Error creating HTTP request for url %s: %s", url, err)
                 return
             }
 
             resp, err := client.Do(req)
             if err != nil {
-                log.Warning().Msgf("Error fetching HTTP response for url %s: %s", url, err)
+                // log.Silent().Msgf("Error fetching HTTP response for url %s: %s", url, err)
                 return
             }
             defer resp.Body.Close()
@@ -107,7 +107,7 @@ func (m *Matcher) Match(certificates types.Message, keywords, tlds, matchers []s
             // Faz o parse do response utilizando o goquery
             doc, err := goquery.NewDocumentFromReader(bodyReader)
             if err != nil {
-                log.Warning().Msgf("error Parse response for url %s: %s", url, err)
+                log.Warning().Msgf("Error Parse response for url %s: %s", url, err)
                 return
             }
 

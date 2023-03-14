@@ -4,12 +4,24 @@ import (
 	"os"
 	"path/filepath"
 	log "github.com/projectdiscovery/gologger"
+	"sort"
+	"strings"
 )
 
+func IsDir(path string) bool {
+    fi, err := os.Stat(path)
+    if err != nil {
+        return false
+    }
+    return fi.Mode().IsDir()
+}
+
 // Directory é o diretório padrão para buscar os arquivos de template
-var Directory = filepath.Join(os.Getenv("HOME"), "certwatcher-templates", "templates")
+var Directory = filepath.Join(os.Getenv("HOME"), "certwatcher-templates", ".")
 
 // FindTemplateByID busca os templates com os IDs especificados em todas as pastas do diretório padrão e em quaisquer pastas adicionais especificadas, retornando os caminhos dos arquivos YAML correspondentes.
+// Find busca as templates com os IDs especificados no diretório padrão e em quaisquer pastas adicionais especificadas,
+// ou no diretório especificado caso seja passado, retornando os caminhos dos arquivos YAML correspondentes.
 func Find(templateID []string, additionalDirs ...string) ([]string, error) {
 	// Combine the default template directory with any additional directories to be searched
 	dirs := append([]string{Directory}, additionalDirs...)
@@ -34,12 +46,16 @@ func Find(templateID []string, additionalDirs ...string) ([]string, error) {
 						templatePaths[id] = path
 					}
 				}
+				// Add all YAML files in the specified directory to the map
+				if dir != Directory && strings.HasPrefix(path, dir) {
+					templatePaths[filepath.Base(path)] = path
+				}
 			}
 			return nil
 		})
-		
+
 		if err != nil {
-			log.Info().Msgf("Error searching for templates: %s", err.Error())
+			log.Fatal().Msgf("Error searching for templates: %s", err.Error())
 		}
 	}
 
@@ -56,10 +72,49 @@ func Find(templateID []string, additionalDirs ...string) ([]string, error) {
 	}
 
 	// Convert the map of file paths to a slice of file paths sorted by the specified template IDs
-	sortedTemplatePaths := make([]string, len(templateID))
-	for i, id := range templateID {
-		sortedTemplatePaths[i] = templatePaths[id]
+	sortedTemplatePaths := make([]string, 0, len(templatePaths))
+	for _, path := range templatePaths {
+		sortedTemplatePaths = append(sortedTemplatePaths, path)
 	}
+
+	sort.Strings(sortedTemplatePaths)
 
 	return sortedTemplatePaths, nil
 }
+
+func LoadAllTemplates(dir string) ([]string, error) {
+    // Create a map to store the paths of found template files
+    templatePaths := make(map[string]string)
+
+    err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+        if err != nil {
+            return err
+        }
+
+        if !info.IsDir() && filepath.Ext(path) == ".yaml" {
+            // Get the filename without the extension
+            filename := filepath.Base(path[:len(path)-len(filepath.Ext(path))])
+
+            // Store the full path to the file in the map
+            templatePaths[filename] = path
+        }
+
+        return nil
+    })
+
+    if err != nil {
+        log.Fatal().Msgf("Error searching for templates: %s", err.Error())
+        return nil, err
+    }
+
+    // Convert the map of file paths to a slice of file paths
+    templatePathsSlice := make([]string, 0, len(templatePaths))
+    for _, path := range templatePaths {
+        templatePathsSlice = append(templatePathsSlice, path)
+    }
+
+    sort.Strings(templatePathsSlice)
+
+    return templatePathsSlice, nil
+}
+

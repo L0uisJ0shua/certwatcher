@@ -9,14 +9,14 @@ import (
 
 func TestTemplates(t *testing.T) {
 
-	// Declara e inicializa a variável options com um struct templates.Options preenchido com valores fictícios
+	// Declara e inicializa a variável options com um struct templates.Options
 	var options = templates.Options{
-		Templates: []string{"fas-keywords-test"}, // options.Templates[]string{} CLI Comand Line Interface
+		Templates: []string{"testing", "laravel-debug-enabled", "example", "phish-fraud-emails", "jenkins-crumb-token"}, // options.Templates[]string{} CLI Comand Line Interface
 	}
 
 	// Chama a função Templates com as opções preenchidas com valores fictícios
-	keywords, tlds, matchers := core.Templates(options)
-
-	t.Log(keywords, tlds, matchers)
+	keywords, tlds, matchers, description, severity := core.Templates(options)
+  
+	t.Log(keywords, tlds, matchers, description, severity)
 }
 

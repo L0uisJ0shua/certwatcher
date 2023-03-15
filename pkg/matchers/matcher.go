@@ -15,6 +15,7 @@ import (
     "bytes"
     "regexp"
     "strings"
+    "sync"
 
 
 )
@@ -30,9 +31,14 @@ type RequestParams struct {
     Paths  []string
 }
 
+type getResult struct {
+    doc        *goquery.Document
+    statusCode int
+    err        error
+}
 
-func convertToSeverity(severitys string) (severity.Severity, error) {
-    switch strings.ToLower(severitys) {
+func Severity(level string) (severity.Severity, error) {
+    switch strings.ToLower(level) {
     case "info":
         return severity.Info, nil
     case "low":
@@ -46,53 +52,86 @@ func convertToSeverity(severitys string) (severity.Severity, error) {
     }
 }
 
-func Get(url string, params *RequestParams) (*goquery.Document, int, error) {
-
+func Get(url string, params *RequestParams) (*goquery.Document, int, int, error) {
+    
     client := &http.Client{
         Timeout: 30 * time.Second,
     }
 
+    // Cria um canal para receber os resultados das goroutines
+    results := make(chan getResult)
+
+    // Cria uma WaitGroup para esperar todas as goroutines terminarem
+    var wg sync.WaitGroup
+
     for _, path := range params.Paths {
+        wg.Add(1)
+        go func(path string) {
+            defer wg.Done()
 
-        // Monta a URL para a requisição.
-        url := fmt.Sprintf("%s%s", url, path)
-        
- 
-        req, err := http.NewRequest(params.Method, url, nil)
-        if err != nil {
-            return nil, 0, fmt.Errorf("error creating HTTP request for url %s: %s", url, err)
-        }
-
-        resp, err := client.Do(req)
-        if err != nil {
-            return nil, 0, fmt.Errorf("error fetching HTTP response for url %s: %s", url, err)
-        }
-        defer resp.Body.Close()
-
-        if resp.StatusCode == http.StatusOK {
-            // Lê o corpo da resposta e armazena em um buffer de bytes
-            bodyBytes, err := ioutil.ReadAll(resp.Body)
+            // Monta a URL para a requisição.
+            url := fmt.Sprintf("%s%s", url, path)
+            req, err := http.NewRequest(params.Method, url, nil)
             if err != nil {
-                return nil, 0, fmt.Errorf("error reading response body for domain %s: %s", url, err)
+                results <- getResult{err: err}
+                return
             }
 
-            // Cria um bytes.Reader para o conteúdo do corpo da resposta
-            bodyReader := bytes.NewReader(bodyBytes)
-
-            // Faz o parse do response utilizando o goquery
-            doc, err := goquery.NewDocumentFromReader(bodyReader)
+            resp, err := client.Do(req)
             if err != nil {
-                return nil, 0, fmt.Errorf("error parse response for url %s: %s", url, err)
+                results <- getResult{err: err}
+                return
             }
+            defer resp.Body.Close()
 
-            log.Debug().Msgf(doc.Text())
+            if resp.StatusCode == http.StatusOK {
+                // Lê o corpo da resposta e armazena em um buffer de bytes
+                bodyBytes, err := ioutil.ReadAll(resp.Body)
+                if err != nil {
+                    results <- getResult{err: err}
+                    return
+                }
 
-            return doc, resp.StatusCode, nil
-        }
+                // Cria um bytes.Reader para o conteúdo do corpo da resposta
+                bodyReader := bytes.NewReader(bodyBytes)
+
+                // Faz o parse do response utilizando o goquery
+                doc, err := goquery.NewDocumentFromReader(bodyReader)
+                if err != nil {
+                    results <- getResult{err: err}
+                    return
+                }
+                results <- getResult{doc: doc, statusCode: resp.StatusCode}
+            } 
+        }(path)
     }
 
-    return nil, 0, fmt.Errorf("no successful response for url %s", url)
+    // Fecha o canal quando todas as goroutines terminarem
+    go func() {
+        wg.Wait()
+        close(results)
+    }()
+
+    // Coleta os resultados das goroutines
+    var doc *goquery.Document
+    var statusCode int
+    for result := range results {
+        if result.err != nil {
+            continue
+        }
+    
+        doc = result.doc
+        statusCode = result.statusCode
+    }
+
+    // Retorna os resultados finais
+    if doc != nil {
+        return doc, statusCode, successCount, nil
+    } else {
+        return nil, 0, failureCount, fmt.Errorf("no successful response for url %s", url)
+    }
 }
+
 
 func HashTLD(domain string, tld string) bool {
     // Verifica se o TLD tem pelo menos duas letras e é composto apenas por caracteres alfanuméricos
@@ -118,7 +157,7 @@ func New(keywords, tlds, matchers []string) *Matcher {
     }
 }
 
-func (m *Matcher) Match(certificates types.Message, keywords, tlds, matchers []string, certs int, requests types.Request, severitys string) {
+func (m *Matcher) Match(certificates types.Message, keywords, tlds, matchers []string, certs int, requests types.Request, level string) {
 
     go func() {
 
@@ -141,7 +180,7 @@ func (m *Matcher) Match(certificates types.Message, keywords, tlds, matchers []s
             log.Info().Msgf("Found cached response for url %s", url)
             doc, err := goquery.NewDocumentFromReader(bytes.NewReader(cached.([]byte)))
             if err != nil {
-                // log.Warning().Msgf("Error parsing cached response for url %s: %s", url, err)
+                log.Warning().Msgf("Error parsing cached response for url %s: %s", url, err)
                 return
             }
             // Verifica se há correspondência com os matchers utilizando expressões regulares.
@@ -164,12 +203,14 @@ func (m *Matcher) Match(certificates types.Message, keywords, tlds, matchers []s
             }
 
             // Se a resposta não estiver em cache, faz a requisição HTTP.
-            doc, _, err := Get(url, params)
+            doc, _, _, err := Get(url, params)
 
             if err != nil {
-                // log.Warning().Msgf("%s", err)
+                log.Warning().Msgf("%s", err)
                 return
             }
+
+            // log.Info().Msgf("%d\n%d", statusCode, successCount)
 
             // Verifica se há correspondência com os matchers utilizando expressões regulares.
             for _, matcher := range m.Matchers {
@@ -213,7 +254,7 @@ func (m *Matcher) Match(certificates types.Message, keywords, tlds, matchers []s
             levels = severity.Low
         }
 
-        s, err := convertToSeverity(severitys)
+        level, err := Severity(level)
 
         if err != nil {
             log.Info().Msgf("%s", err)
@@ -233,11 +274,10 @@ func (m *Matcher) Match(certificates types.Message, keywords, tlds, matchers []s
         } else {
           
             if len(matcherMatched) > 0 {
-
                 log.Info().Msgf("Pattern successfully found %s", time.Now().Format("01-02-2006 15:04:05"))
                 log.Info().Msgf("Number of certificates issued: %d\n", certs)
                 log.Info().Msgf("Matching regular expression found: %s", matcherMatched)
-                core.Log(certificates, keywdors, s, tlds, matchers)
+                core.Log(certificates, keywdors, level, tlds, matchers)
                 return
             }
         }   

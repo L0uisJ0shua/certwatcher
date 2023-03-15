@@ -29,6 +29,7 @@ type Info struct {
     Whitelist Whitelist `yaml:"whitelist"`
     // Response specifies the expected response for a match.
     Response []Response `yaml:"response"`
+    Requests Request `yaml:"requests"`
 }
 
 // Matcher contains a pattern, type, description, and severity.
@@ -38,6 +39,13 @@ type Matcher struct {
     Description string `yaml:"description"`
 }
 
+type Request struct {
+    Method      string   `yaml:"method"`
+    Path        []string `yaml:"path"`
+    Description string   `yaml:"description,omitempty"`
+    Condition   string   `yaml:"condition,omitempty"`
+}
+
 // TLD contains a pattern, type, description, and severity.
 type TLD struct {
     Pattern     string `yaml:"pattern"`
@@ -45,7 +53,6 @@ type TLD struct {
     Description string `yaml:"description"`
 }
 
-// Whitelist contains domains to whitelist and a description of the whitelist type.
 type Whitelist struct {
     Domains     []string `yaml:"domains"`
     Type        string   `yaml:"type"`
@@ -60,4 +67,5 @@ type Response struct {
 // Templates contains information about a YAML template.
 type Templates struct {
     Info Info `yaml:"info"`
+    Requests Request `yaml:"requests"`
 }

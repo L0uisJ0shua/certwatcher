@@ -73,8 +73,9 @@ func main() {
 	options := types.Options{
         Templates: options.Templates,
     }
-	
-    keywords, tlds, matchers, description, severity := core.Templates(options)
-    
-	stream.Certificates(keywords, tlds, matchers, description, severity)
+
+    templates := core.Templates(options)
+    for _, template := range templates {
+		stream.Certificates(template.Keywords, template.TLDs, template.Matchers, template.Requests, template.Severity)
+	}
 }

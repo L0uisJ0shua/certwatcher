@@ -2,62 +2,59 @@ package main
 
 import (
     "testing"
+    "github.com/stretchr/testify/assert"
+    matchers "pkg/matchers"
+    "fmt"
     "pkg/types"
-    matcher "pkg/matchers"
 )
 
-func TestMatcher(t *testing.T) {
 
-    keywords := []string{"apple", "amazon", "bradesco"}
-    tlds := []string{"net", "org", "com"}
-    matchers := []string{"IETFIETF", "amazon", "bradesco"}
-    template := matcher.New(keywords, tlds, matchers)
+type RequestParams struct {
+    Method string
+    Paths  []string
+}
 
-    // Initializes the variable 'certs' with the value of zero.
-    certs := 0
+func TestGet(t *testing.T) {
 
-    // Match a certificate with a matching TLD only
-    certificates := types.Message{
-        Domain:         "www.amazon.com",
-        Domains:        []string{"amazon.com", "www.amazon.com"},
-        SubjectAltName: "amazon.com",
-        Issuer:         "Amazon Issuer",
-        Source:         "Amazon",
+    // Monta a URL para a requisição.
+    url := fmt.Sprintf("https://%s", "cl.yunketop.com")
+
+    //Testando com caminho definido no RequestParams
+    params := &RequestParams{
+        Method: types.Requests.Method,
+        Paths:  types.Requests.Path,
+    }
+    // Se a resposta não estiver em cache, faz a requisição HTTP.
+    doc, _, err := matchers.Get(url, params)
+
+    if err != nil {
+        return
     }
 
-    template.Match(certificates, keywords, tlds, matchers, certs, "Laravel Debug Method Enabled", "High")
+    assert.NoError(t, err)
+    assert.NotNil(t, doc)
+}
 
-    // Match a certificate with a matching TLD and matcher
-    certificates = types.Message{
-        Domain:         "www.ietf.org",
-        Domains:        []string{"ietf.org", "www.ietf.org"},
-        SubjectAltName: "ietf.org",
-        Issuer:         "IETF Issuer",
-        Source:         "IETF Domain",
-    }
-   
-    template.Match(certificates, keywords, tlds, matchers, certs, "Laravel Debug Method Enabled", "High")
-
-    // Match a certificate with a matching TLD and keyword
-    certificates = types.Message{
-        Domain:         "www.apple.com",
-        Domains:        []string{"apple.com", "www.apple.com"},
-        SubjectAltName: "apple.com",
-        Issuer:         "Apple Issuer",
-        Source:         "Lets Encrypt",
-    }
-    
-    template.Match(certificates, keywords, tlds, matchers, certs, "Laravel Debug Method Enabled", "High")
-
-    // Match a certificate with a matching TLD, keyword, and matcher
-    certificates = types.Message{
-        Domain:         "bradesco.reativacaodechave.com",
-        Domains:        []string{"bradesco.reativacaodechave.com", "www.bradesco.reativacaodechave.com"},
-        SubjectAltName: "bradesco.reativacaodechave.com",
-        Issuer:         "Google Issuer",
-        Source:         "Google Domain",
+func TestHashTLD(t *testing.T) {
+    testCases := []struct {
+        domain string
+        tld string
+        expected bool
+    }{
+        {"www.example.com", "com", true},
+        {"www.example.org", "org", true},
+        {"www.example.net", "com", false},
+        {"www.example.co.uk", "uk", true},
+        {"www.example.ca", "com", false},
+        {"www.example.org", "com", false},
+        {"www.example.com.br", "br", true},
+        {"cl.yunketop.com", "com", false},
     }
 
-    template.Match(certificates, keywords, tlds, matchers, certs, "Laravel Debug Method Enabled", "High")
+    for _, tc := range testCases {
+        if matchers.HashTLD(tc.domain, tc.tld) != tc.expected {
+            t.Errorf("%s should be a %s TLD: expected %v, but got %v", tc.domain, tc.tld, tc.expected, !tc.expected)
+        }
+    }
 }
 

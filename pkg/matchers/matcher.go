@@ -1,19 +1,21 @@
 package matchers
 
 import (
-    "fmt"
-    "net/http"
-    "regexp"
-    "strings"
-    "time"
+   
     "github.com/PuerkitoBio/goquery"
     "github.com/projectdiscovery/nuclei/v2/pkg/model/types/severity"
     "pkg/core"
     "pkg/types"
     log "github.com/projectdiscovery/gologger"
     "github.com/patrickmn/go-cache"
-    "bytes"
+    "fmt"
+    "net/http"
     "io/ioutil"
+    "time"
+    "bytes"
+    "regexp"
+    "strings"
+
 
 )
 
@@ -23,9 +25,89 @@ type Matcher struct {
     Matchers []string
 }
 
-func hasTLD(domain string, tld string) bool {
-    re := regexp.MustCompile(fmt.Sprintf(`\.[a-z\-]+%s$`, tld))
-    return re.MatchString(domain)
+type RequestParams struct {
+    Method string
+    Paths  []string
+}
+
+
+func convertToSeverity(severitys string) (severity.Severity, error) {
+    switch strings.ToLower(severitys) {
+    case "info":
+        return severity.Info, nil
+    case "low":
+        return severity.Low, nil
+    case "medium":
+        return severity.Medium, nil
+    case "high":
+        return severity.High, nil
+    default:
+        return severity.Unknown, nil
+    }
+}
+
+func Get(url string, params *RequestParams) (*goquery.Document, int, error) {
+
+    client := &http.Client{
+        Timeout: 30 * time.Second,
+    }
+
+    for _, path := range params.Paths {
+
+        // Monta a URL para a requisição.
+        url := fmt.Sprintf("%s%s", url, path)
+        
+ 
+        req, err := http.NewRequest(params.Method, url, nil)
+        if err != nil {
+            return nil, 0, fmt.Errorf("error creating HTTP request for url %s: %s", url, err)
+        }
+
+        resp, err := client.Do(req)
+        if err != nil {
+            return nil, 0, fmt.Errorf("error fetching HTTP response for url %s: %s", url, err)
+        }
+        defer resp.Body.Close()
+
+        if resp.StatusCode == http.StatusOK {
+            // Lê o corpo da resposta e armazena em um buffer de bytes
+            bodyBytes, err := ioutil.ReadAll(resp.Body)
+            if err != nil {
+                return nil, 0, fmt.Errorf("error reading response body for domain %s: %s", url, err)
+            }
+
+            // Cria um bytes.Reader para o conteúdo do corpo da resposta
+            bodyReader := bytes.NewReader(bodyBytes)
+
+            // Faz o parse do response utilizando o goquery
+            doc, err := goquery.NewDocumentFromReader(bodyReader)
+            if err != nil {
+                return nil, 0, fmt.Errorf("error parse response for url %s: %s", url, err)
+            }
+
+            log.Debug().Msgf(doc.Text())
+
+            return doc, resp.StatusCode, nil
+        }
+    }
+
+    return nil, 0, fmt.Errorf("no successful response for url %s", url)
+}
+
+func HashTLD(domain string, tld string) bool {
+    // Verifica se o TLD tem pelo menos duas letras e é composto apenas por caracteres alfanuméricos
+    if len(tld) < 2 || !regexp.MustCompile(`^[a-zA-Z0-9]+$`).MatchString(tld) {
+        return false
+    }
+
+    // Separa o domínio em partes, usando o ponto como delimitador
+    parts := strings.Split(domain, ".")
+    if len(parts) < 2 {
+        return false
+    }
+
+    // Verifica se a última parte do domínio é o TLD desejado
+    return parts[len(parts)-1] == tld
 }
 
 func New(keywords, tlds, matchers []string) *Matcher {
@@ -36,7 +118,7 @@ func New(keywords, tlds, matchers []string) *Matcher {
     }
 }
 
-func (m *Matcher) Match(certificates types.Message, keywords, tlds, matchers []string, certs int, description string, sev string) {
+func (m *Matcher) Match(certificates types.Message, keywords, tlds, matchers []string, certs int, requests types.Request, severitys string) {
 
     go func() {
 
@@ -59,7 +141,7 @@ func (m *Matcher) Match(certificates types.Message, keywords, tlds, matchers []s
             log.Info().Msgf("Found cached response for url %s", url)
             doc, err := goquery.NewDocumentFromReader(bytes.NewReader(cached.([]byte)))
             if err != nil {
-                log.Warning().Msgf("Error parsing cached response for url %s: %s", url, err)
+                // log.Warning().Msgf("Error parsing cached response for url %s: %s", url, err)
                 return
             }
             // Verifica se há correspondência com os matchers utilizando expressões regulares.
@@ -70,49 +152,24 @@ func (m *Matcher) Match(certificates types.Message, keywords, tlds, matchers []s
                     continue
                 }
                 if re.MatchString(doc.Text()) {
-                    log.Info().Msgf("Matcher %s found on cached response for %s", matcher, url)
                     matcherMatched = matcher
-                    break
+                    continue
                 }
             }
         } else {
+
+            params := &RequestParams{
+                Method: requests.Method,
+                Paths:  requests.Path,
+            }
+
             // Se a resposta não estiver em cache, faz a requisição HTTP.
-            client := &http.Client{
-                Timeout: 30 * time.Second,
-            }
+            doc, _, err := Get(url, params)
 
-            req, err := http.NewRequest("GET", url, nil)
             if err != nil {
-                log.Silent().Msgf("Error creating HTTP request for url %s: %s", url, err)
+                // log.Warning().Msgf("%s", err)
                 return
             }
-
-            resp, err := client.Do(req)
-            if err != nil {
-                // log.Silent().Msgf("Error fetching HTTP response for url %s: %s", url, err)
-                return
-            }
-            defer resp.Body.Close()
-
-            // Lê o corpo da resposta e armazena em um buffer de bytes
-            bodyBytes, err := ioutil.ReadAll(resp.Body)
-            if err != nil {
-                log.Warning().Msgf("Error reading response body for domain %s: %s", url, err)
-                return
-            }
-
-            // Cria um bytes.Reader para o conteúdo do corpo da resposta
-            bodyReader := bytes.NewReader(bodyBytes)
-
-            // Faz o parse do response utilizando o goquery
-            doc, err := goquery.NewDocumentFromReader(bodyReader)
-            if err != nil {
-                log.Warning().Msgf("Error Parse response for url %s: %s", url, err)
-                return
-            }
-
-            // Armazena a resposta em cache
-            c.Set(url, bodyReader, cache.DefaultExpiration)
 
             // Verifica se há correspondência com os matchers utilizando expressões regulares.
             for _, matcher := range m.Matchers {
@@ -123,14 +180,14 @@ func (m *Matcher) Match(certificates types.Message, keywords, tlds, matchers []s
                 if re.MatchString(doc.Text()) {
                     matcherMatched = matcher
                     log.Debug().Msgf("Matcher %s found on %s", matcher, url)
-                    break
+                    continue
                 }
             }
         }
         // Verifica se o domínio do objeto certificates termina com algum TLD.
         var tldMatched bool
         for _, tld := range m.TLDs {
-            if hasTLD(certificates.Domain, tld) {
+            if HashTLD(certificates.Domain, tld) {
                 log.Debug().Msgf("Domain %s matched TLDs (Top-Level Domains)", url)
                 // Incrementa patterns em 1 se houver uma correspondência e sai do loop.
                 patterns++
@@ -156,6 +213,12 @@ func (m *Matcher) Match(certificates types.Message, keywords, tlds, matchers []s
             levels = severity.Low
         }
 
+        s, err := convertToSeverity(severitys)
+
+        if err != nil {
+            log.Info().Msgf("%s", err)
+        } 
+
         if len(keywdors) > 0 {
             log.Info().Msgf("Suspicious activity found at %s\n", time.Now().Format("01-02-2006 15:04:05"))
             log.Info().Msgf("Number of certificates issued: %d\n", certs)
@@ -170,10 +233,11 @@ func (m *Matcher) Match(certificates types.Message, keywords, tlds, matchers []s
         } else {
           
             if len(matcherMatched) > 0 {
+
                 log.Info().Msgf("Pattern successfully found %s", time.Now().Format("01-02-2006 15:04:05"))
                 log.Info().Msgf("Number of certificates issued: %d\n", certs)
                 log.Info().Msgf("Matching regular expression found: %s", matcherMatched)
-                core.Log(certificates, keywdors, severity.High, tlds, matchers)
+                core.Log(certificates, keywdors, s, tlds, matchers)
                 return
             }
         }   

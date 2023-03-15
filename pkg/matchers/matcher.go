@@ -52,7 +52,7 @@ func Severity(level string) (severity.Severity, error) {
     }
 }
 
-func Get(url string, params *RequestParams) (*goquery.Document, int, int, error) {
+func Get(url string, params *RequestParams) (*goquery.Document, int, error) {
     
     client := &http.Client{
         Timeout: 30 * time.Second,
@@ -126,9 +126,9 @@ func Get(url string, params *RequestParams) (*goquery.Document, int, int, error)
 
     // Retorna os resultados finais
     if doc != nil {
-        return doc, statusCode, successCount, nil
+        return doc, statusCode, nil
     } else {
-        return nil, 0, failureCount, fmt.Errorf("no successful response for url %s", url)
+        return nil, 0, fmt.Errorf("no successful response for url %s", url)
     }
 }
 
@@ -203,15 +203,13 @@ func (m *Matcher) Match(certificates types.Message, keywords, tlds, matchers []s
             }
 
             // Se a resposta não estiver em cache, faz a requisição HTTP.
-            doc, _, _, err := Get(url, params)
+            doc, _, err := Get(url, params)
 
             if err != nil {
                 log.Warning().Msgf("%s", err)
                 return
             }
-
-            // log.Info().Msgf("%d\n%d", statusCode, successCount)
-
+            
             // Verifica se há correspondência com os matchers utilizando expressões regulares.
             for _, matcher := range m.Matchers {
                 re, err := regexp.Compile(matcher)

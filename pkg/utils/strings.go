@@ -25,8 +25,6 @@ func Duplicates(strings []string) []string {
     return uniqueSlice
 }
 
-
-
 func Author(name string) string {
     names := strings.Split(name, " ")
     var Author []string

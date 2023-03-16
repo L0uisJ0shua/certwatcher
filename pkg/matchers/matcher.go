@@ -10,14 +10,11 @@ import (
     "github.com/patrickmn/go-cache"
     "fmt"
     "net/http"
-    "io/ioutil"
     "time"
     "bytes"
     "regexp"
     "strings"
     "sync"
-
-
 )
 
 type Matcher struct {
@@ -53,30 +50,41 @@ func Severity(level string) (severity.Severity, error) {
 }
 
 func Get(url string, params *RequestParams) (*goquery.Document, int, error) {
-    
+    // Cria um cliente HTTP com timeout definido em 30 segundos
     client := &http.Client{
         Timeout: 30 * time.Second,
     }
 
     // Cria um canal para receber os resultados das goroutines
-    results := make(chan getResult)
+    results := make(chan getResult, len(params.Paths))
 
     // Cria uma WaitGroup para esperar todas as goroutines terminarem
     var wg sync.WaitGroup
 
+    // Armazena as URLs completas das solicitações enviadas
+    requests := make([]string, 0, len(params.Paths))
+
+    // Realiza as solicitações em paralelo
     for _, path := range params.Paths {
         wg.Add(1)
-        go func(path string) {
+
+        // Monta a URL para a requisição
+        reqURL := url + path
+
+        // Adiciona a URL completa na lista de solicitações
+        requests = append(requests, reqURL)
+
+        go func(url string, method string) {
             defer wg.Done()
 
-            // Monta a URL para a requisição.
-            url := fmt.Sprintf("%s%s", url, path)
-            req, err := http.NewRequest(params.Method, url, nil)
+            // Cria uma nova requisição HTTP com o método especificado
+            req, err := http.NewRequest(method, url, nil)
             if err != nil {
                 results <- getResult{err: err}
                 return
             }
 
+            // Envia a requisição e espera pela resposta
             resp, err := client.Do(req)
             if err != nil {
                 results <- getResult{err: err}
@@ -84,26 +92,21 @@ func Get(url string, params *RequestParams) (*goquery.Document, int, error) {
             }
             defer resp.Body.Close()
 
-            if resp.StatusCode == http.StatusOK {
-                // Lê o corpo da resposta e armazena em um buffer de bytes
-                bodyBytes, err := ioutil.ReadAll(resp.Body)
-                if err != nil {
-                    results <- getResult{err: err}
-                    return
-                }
+            // Verifica se a resposta teve sucesso (status code 200)
+            if resp.StatusCode != http.StatusOK {
+                results <- getResult{err: fmt.Errorf("response status code: %d", resp.StatusCode)}
+                return
+            }
 
-                // Cria um bytes.Reader para o conteúdo do corpo da resposta
-                bodyReader := bytes.NewReader(bodyBytes)
+            // Faz o parse do response utilizando o goquery
+            doc, err := goquery.NewDocumentFromReader(resp.Body)
+            if err != nil {
+                results <- getResult{err: err}
+                return
+            }
 
-                // Faz o parse do response utilizando o goquery
-                doc, err := goquery.NewDocumentFromReader(bodyReader)
-                if err != nil {
-                    results <- getResult{err: err}
-                    return
-                }
-                results <- getResult{doc: doc, statusCode: resp.StatusCode}
-            } 
-        }(path)
+            results <- getResult{doc: doc, statusCode: resp.StatusCode}
+        }(reqURL, params.Method)
     }
 
     // Fecha o canal quando todas as goroutines terminarem
@@ -115,22 +118,31 @@ func Get(url string, params *RequestParams) (*goquery.Document, int, error) {
     // Coleta os resultados das goroutines
     var doc *goquery.Document
     var statusCode int
+    var err error
     for result := range results {
         if result.err != nil {
+            err = result.err
             continue
         }
-    
+
         doc = result.doc
         statusCode = result.statusCode
+        break
     }
+
+    // Imprime a lista de solicitações
+    log.Debug().Msgf("Number of Requests Sent: %v\n", requests)
 
     // Retorna os resultados finais
     if doc != nil {
         return doc, statusCode, nil
+    } else if err != nil {
+        return nil, 0, err
     } else {
         return nil, 0, fmt.Errorf("no successful response for url %s", url)
     }
 }
+
 
 
 func HashTLD(domain string, tld string) bool {
@@ -209,7 +221,7 @@ func (m *Matcher) Match(certificates types.Message, keywords, tlds, matchers []s
                 log.Warning().Msgf("%s", err)
                 return
             }
-            
+
             // Verifica se há correspondência com os matchers utilizando expressões regulares.
             for _, matcher := range m.Matchers {
                 re, err := regexp.Compile(matcher)
@@ -218,7 +230,6 @@ func (m *Matcher) Match(certificates types.Message, keywords, tlds, matchers []s
                 }
                 if re.MatchString(doc.Text()) {
                     matcherMatched = matcher
-                    log.Debug().Msgf("Matcher %s found on %s", matcher, url)
                     continue
                 }
             }
@@ -227,7 +238,6 @@ func (m *Matcher) Match(certificates types.Message, keywords, tlds, matchers []s
         var tldMatched bool
         for _, tld := range m.TLDs {
             if HashTLD(certificates.Domain, tld) {
-                log.Debug().Msgf("Domain %s matched TLDs (Top-Level Domains)", url)
                 // Incrementa patterns em 1 se houver uma correspondência e sai do loop.
                 patterns++
                 tldMatched = true
@@ -252,11 +262,7 @@ func (m *Matcher) Match(certificates types.Message, keywords, tlds, matchers []s
             levels = severity.Low
         }
 
-        level, err := Severity(level)
-
-        if err != nil {
-            log.Info().Msgf("%s", err)
-        } 
+        level, _ := Severity(level)
 
         if len(keywdors) > 0 {
             log.Info().Msgf("Suspicious activity found at %s\n", time.Now().Format("01-02-2006 15:04:05"))

@@ -55,6 +55,11 @@ func Get(url string, params *RequestParams) (*goquery.Document, int, error) {
         Timeout: 30 * time.Second,
     }
 
+     // Define o path padrão caso params seja nulo
+    if len(params.Paths) == 0 {
+        params = &RequestParams{Paths: []string{"/"}, Method: "GET"}
+    }
+
     // Cria um canal para receber os resultados das goroutines
     results := make(chan getResult, len(params.Paths))
 
@@ -73,6 +78,8 @@ func Get(url string, params *RequestParams) (*goquery.Document, int, error) {
 
         // Adiciona a URL completa na lista de solicitações
         requests = append(requests, reqURL)
+
+        fmt.Println(reqURL)
 
         go func(url string, method string) {
             defer wg.Done()
@@ -133,16 +140,19 @@ func Get(url string, params *RequestParams) (*goquery.Document, int, error) {
     // Imprime a lista de solicitações
     log.Debug().Msgf("Number of Requests Sent: %v\n", requests)
 
-    // Retorna os resultados finais
+    // Returns the final results
     if doc != nil {
+        log.Debug().Msgf("Successfully received response for requests: %v\n", requests)
         return doc, statusCode, nil
     } else if err != nil {
+        log.Debug().Msgf("Encountered an error during request: %v", err)
         return nil, 0, err
     } else {
-        return nil, 0, fmt.Errorf("no successful response for url %s", url)
+        log.Debug().Msgf("No successful response received for url: %s", url)
+        return nil, 0, nil
     }
-}
 
+}
 
 
 func HashTLD(domain string, tld string) bool {

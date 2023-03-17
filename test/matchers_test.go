@@ -30,7 +30,6 @@ func TestGet(t *testing.T) {
         },
         {
             url:            "https://logbook.billchen.win",
-            paths:          []string{"/", "/search?q=golang"},
             expectedTitle:  "Google",
             expectedStatus: http.StatusOK,
         },

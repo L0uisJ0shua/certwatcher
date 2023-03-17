@@ -79,8 +79,6 @@ func Get(url string, params *RequestParams) (*goquery.Document, int, error) {
         // Adiciona a URL completa na lista de solicitações
         requests = append(requests, reqURL)
 
-        fmt.Println(reqURL)
-
         go func(url string, method string) {
             defer wg.Done()
 
@@ -138,7 +136,7 @@ func Get(url string, params *RequestParams) (*goquery.Document, int, error) {
     }
 
     // Imprime a lista de solicitações
-    log.Debug().Msgf("Number of Requests Sent: %v\n", requests)
+    // log.Debug().Msgf("Number of Requests Sent: %v\n", requests)
 
     // Returns the final results
     if doc != nil {

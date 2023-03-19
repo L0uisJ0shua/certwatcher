@@ -2,8 +2,8 @@ package yamlreader
 
 import (
 	"io/ioutil"
-	"log"
-	"gopkg.in/yaml.v2"
+	log "github.com/projectdiscovery/gologger"
+	"gopkg.in/yaml.v3"
 )
 
 // ReadYAML lê uma string YAML ou um arquivo YAML e retorna um struct preenchido com os dados
@@ -16,7 +16,7 @@ func ReadYAML(src interface{}, v interface{}) error {
 		// Lê o conteúdo do arquivo YAML
 		data, err = ioutil.ReadFile(s)
 		if err != nil {
-			log.Printf("Error: %v", err)
+			log.Fatal().Msgf("Error: %v", err)
 			return err
 		}
 	case []byte:
@@ -26,20 +26,20 @@ func ReadYAML(src interface{}, v interface{}) error {
 		for _, filename := range s {
 			filedata, err := ioutil.ReadFile(filename)
 			if err != nil {
-				log.Printf("Error: %v", err)
+				log.Fatal().Msgf("Error: %v", err)
 				return err
 			}
 			data = append(data, filedata...)
 		}
 	default:
-		log.Printf("Error: Invalid source type %T", s)
+		log.Fatal().Msgf("Error: Invalid source type %T", s)
 		return err
 	}
 
 	// Decodifica o conteúdo para o struct passado como parâmetro
 	err = yaml.Unmarshal(data, v)
 	if err != nil {
-		log.Printf("Error: %v", err)
+		log.Fatal().Msgf("Error: %v", err)
 		return err
 	}
 

@@ -13,7 +13,7 @@
   <img src="https://img.shields.io/badge/development-active-yellow.svg" alt="development status">
  </a>
   <a href="#">
-    <img src="https://img.shields.io/badge/version-v0.1.0-blue" alt="version">
+    <img src="https://img.shields.io/badge/version-v0.1.2-blue" alt="version">
   </a>
   <a href="#">
     <img src="https://github.com/drfabiocastro/certwatcher/actions/workflows/makefile.yml/badge.svg?branch=master" alt="version">

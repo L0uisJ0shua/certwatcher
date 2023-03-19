@@ -3,15 +3,41 @@ package colorizer
 import (
     "github.com/logrusorgru/aurora"
     "github.com/projectdiscovery/nuclei/v2/pkg/model/types/severity"
+    "strings"
 )
 
 const (
     fgOrange uint8 = 208
 )
 
-func GetSeverityColor(templateSeverity severity.Severity) string {
+func parseSeverityString(severityStr string) severity.Severity {
+    switch strings.ToLower(severityStr) {
+    case "info":
+        return severity.Info
+    case "low":
+        return severity.Low
+    case "medium":
+        return severity.Medium
+    case "high":
+        return severity.High
+    case "critical":
+        return severity.Critical
+    default:
+        return severity.Unknown
+    }
+}
+
+func getSeverityValue(severityValue interface{}) severity.Severity {
+    if severityStr, ok := severityValue.(string); ok {
+        return parseSeverityString(severityStr)
+    }
+    return severityValue.(severity.Severity)
+}
+
+func GetSeverityColor(templateSeverity interface{}) string {
+    severityValue := getSeverityValue(templateSeverity)
     var method func(arg interface{}) aurora.Value
-    switch templateSeverity {
+    switch severityValue {
     case severity.Info:
         method = aurora.Blue
     case severity.Low:
@@ -26,11 +52,11 @@ func GetSeverityColor(templateSeverity severity.Severity) string {
         method = aurora.White
     }
 
-    return method(templateSeverity.String()).String()
+    return method(severityValue.String()).String()
 }
 
-func New() func(severity.Severity) string {
-    return func(severity severity.Severity) string {
-        return GetSeverityColor(severity)
+func New() func(severityValue interface{}) string {
+    return func(severityValue interface{}) string {
+        return GetSeverityColor(severityValue)
     }
 }

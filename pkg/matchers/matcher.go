@@ -49,28 +49,42 @@ func Severity(level string) (severity.Severity, error) {
     }
 }
 
+func addPathsToSlice(params *RequestParams) []string {
+    var Paths []string
+
+      // verifica se params.Paths é igual a zero e adiciona "/" ao slice "Paths" caso seja
+    if len(Paths) == 0 {
+        Paths = append(Paths, "/")
+    }
+    
+    // adiciona o conteúdo de "params.Paths" ao slice "Paths"
+    Paths = append(Paths, params.Paths...)
+
+    // imprime o slice e o seu tamanho
+    log.Debug().Msgf("Slice: %q\nTamanho: %d\n", Paths, len(Paths))
+    
+    return Paths
+}
+
 func Get(url string, params *RequestParams) (*goquery.Document, int, error) {
     // Cria um cliente HTTP com timeout definido em 30 segundos
     client := &http.Client{
         Timeout: 30 * time.Second,
     }
 
-     // Define o path padrão caso params seja nulo
-    if len(params.Paths) == 0 {
-        params = &RequestParams{Paths: []string{"/"}, Method: "GET"}
-    }
+    var paths = addPathsToSlice(params)
 
     // Cria um canal para receber os resultados das goroutines
-    results := make(chan getResult, len(params.Paths))
+    results := make(chan getResult, len(paths))
 
     // Cria uma WaitGroup para esperar todas as goroutines terminarem
     var wg sync.WaitGroup
 
     // Armazena as URLs completas das solicitações enviadas
-    requests := make([]string, 0, len(params.Paths))
+    requests := make([]string, 0, len(paths))
 
     // Realiza as solicitações em paralelo
-    for _, path := range params.Paths {
+    for _, path := range paths {
         wg.Add(1)
 
         // Monta a URL para a requisição
@@ -78,6 +92,8 @@ func Get(url string, params *RequestParams) (*goquery.Document, int, error) {
 
         // Adiciona a URL completa na lista de solicitações
         requests = append(requests, reqURL)
+
+        log.Debug().Msgf("%s", reqURL)
 
         go func(url string, method string) {
             defer wg.Done()
@@ -143,10 +159,10 @@ func Get(url string, params *RequestParams) (*goquery.Document, int, error) {
         log.Debug().Msgf("Successfully received response for requests: %v\n", requests)
         return doc, statusCode, nil
     } else if err != nil {
-        log.Debug().Msgf("Encountered an error during request: %v", err)
+        log.Warning().Msgf("Encountered an error during request: %v", err)
         return nil, 0, err
     } else {
-        log.Debug().Msgf("No successful response received for url: %s", url)
+        log.Warning().Msgf("No successful response received for url: %s", url)
         return nil, 0, nil
     }
 
@@ -177,7 +193,7 @@ func New(keywords, tlds, matchers []string) *Matcher {
     }
 }
 
-func (m *Matcher) Match(certificates types.Message, keywords, tlds, matchers []string, certs int, requests types.Request, level string) {
+func (m *Matcher) Match(certificates types.Message, keywords, tlds, matchers []string, certs int, requests types.Request, level string, paths []string) {
 
     go func() {
 
@@ -208,18 +224,18 @@ func (m *Matcher) Match(certificates types.Message, keywords, tlds, matchers []s
                 re, err := regexp.Compile(matcher)
                 if err != nil {
                     log.Warning().Msgf("%s", err)
-                    continue
+                    break
                 }
                 if re.MatchString(doc.Text()) {
                     matcherMatched = matcher
-                    continue
+                    break
                 }
             }
         } else {
 
             params := &RequestParams{
                 Method: requests.Method,
-                Paths:  requests.Path,
+                Paths:  paths,
             }
 
             // Se a resposta não estiver em cache, faz a requisição HTTP.
@@ -234,11 +250,11 @@ func (m *Matcher) Match(certificates types.Message, keywords, tlds, matchers []s
             for _, matcher := range m.Matchers {
                 re, err := regexp.Compile(matcher)
                 if err != nil {
-                    continue
+                    break
                 }
                 if re.MatchString(doc.Text()) {
                     matcherMatched = matcher
-                    continue
+                    break
                 }
             }
         }

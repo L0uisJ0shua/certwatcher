@@ -18,6 +18,7 @@ type Models struct {
     TLDs     []string `yaml:"tlds"`
     Severity   string `yaml:"severity"`
     Requests  types.Request `yaml:"requests"`
+    Paths []string 
 }
 
 var colorize func(interface{}) string
@@ -62,23 +63,25 @@ func Summary(template types.Templates, templates []string) {
     } 
 }
 
-func Templates(options types.Options) []Models {
+func Templates(options types.Options) ([]Models, []string) {
     // Encontrar os templates a serem usados
     templates, _ := template.Find(options.Templates)
 
     // Slice para armazenar as informações de cada template
-    var models []Models
-    var template types.Templates
+    var Templates []Models
+
+    // Slice para armazenar todos os paths de request
+    var RequestPaths []string
 
     // Initialize a map to store tags for each loaded YAML
     tagsMap := make(map[string]map[string]bool)
     // Initialize a map to keep track of processed templates
     processed := make(map[string]bool)
 
-    // Ler os arquivos YAML e preencher o slice de Modelss com as informações de cada template
-    for _, path := range templates {
+    var template types.Templates
 
-        var currentTemplate string
+    // Ler os arquivos YAML e preencher o slice de Models com as informações de cada template
+    for _, path := range templates {
 
         if err := yaml.ReadYAML(path, &template); err != nil {
             log.Info().Msgf("%s", err)
@@ -88,8 +91,6 @@ func Templates(options types.Options) []Models {
         if processed[template.Info.ID] {
             continue
         }
-
-        currentTemplate = template.Info.Name
 
         // Append tags to the tag map for the current template
         if _, ok := tagsMap[template.Info.ID]; !ok {
@@ -111,40 +112,32 @@ func Templates(options types.Options) []Models {
             tldsSlice = append(tldsSlice, tld.Pattern)
         }
 
-        // Adicionar informações do template ao slice de Modelss
-        models = append(models, Models{
+        // Criar um slice para armazenar os caminhos de request do template
+        var paths []string
+        for _, request := range template.Info.Requests.Path {
+            paths = append(paths, request)
+            RequestPaths = append(RequestPaths, request) // Adicionar o path à slice geral
+        }
+
+        // Adicionar informações do template ao slice de Models
+        Templates = append(Templates, Models{
             Keywords: template.Info.Keywords,
             Matchers: matchersSlice,
             TLDs:     tldsSlice,
             Requests: template.Info.Requests,
-            Severity:  template.Info.Severity,
+            Paths:    RequestPaths,
+            Severity: template.Info.Severity,
         })
 
-         // Print information about the current template
-        tagSlice := make([]string, 0, len(tagsMap[template.Info.ID]))
-        for tag := range tagsMap[template.Info.ID] {
-            tagSlice = append(tagSlice, tag)
-        }
-
-        Info(template, currentTemplate, tagSlice)
-
-        // Mark template as processed
+        // Marcar o template como processado
         processed[template.Info.ID] = true
-    }
-
-    // Create a slice with unique tags from the tag map
-    var tags []string
-    for _, tagMap := range tagsMap {
-        for tag := range tagMap {
-            tags = append(tags, tag)
-        }
     }
 
     // Print summary information about loaded templates, tags, and keywords
     Summary(template, templates)
 
-    // Retornar o slice de TemplateStructs preenchido com as informações de cada template
-    return models
+    // Retornar o slice de todas as structs preenchido com as informações de cada template e o slice com todos os paths de requests
+    return Templates, RequestPaths
 }
 
 

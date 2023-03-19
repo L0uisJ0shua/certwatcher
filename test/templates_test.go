@@ -15,10 +15,10 @@ func TestTemplates(t *testing.T) {
 	}
 
 	// Chama a função Templates com as opções preenchidas com valores fictícios
-	templates := core.Templates(options)
+	templates, paths := core.Templates(options)
 
 	for _, template := range templates {
-		t.Log(template.Keywords, template.Matchers, template.TLDs, template.Requests, template.Severity)
+		t.Log(template.Keywords, template.Matchers, template.TLDs, template.Requests, template.Severity, paths)
 	}
 }
 

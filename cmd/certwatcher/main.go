@@ -74,8 +74,8 @@ func main() {
         Templates: options.Templates,
     }
 
-    templates := core.Templates(options)
+    templates,paths := core.Templates(options)
     for _, template := range templates {
-		stream.Certificates(template.Keywords, template.TLDs, template.Matchers, template.Requests, template.Severity)
+		stream.Certificates(template.Keywords, template.TLDs, template.Matchers, template.Requests, template.Severity, paths)
 	}
 }

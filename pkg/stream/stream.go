@@ -14,7 +14,7 @@ import (
 
 // Certificates captures certificates from a CertStream, a real-time feed of newly issued SSL/TLS certificates.
 // It takes a slice of keywords to check against the domain name of each certificate received and a list of valid TLDs.
-func Certificates(keywords []string, tlds []string, matcher []string, requests types.Request, severity string) {
+func Certificates(keywords []string, tlds []string, matcher []string, requests types.Request, severity string, paths []string) {
 	// Create a new spinner and start it in a goroutine
 	s := spinner.New(spinner.CharSets[14], 100*time.Millisecond)
 	go func() {
@@ -49,7 +49,7 @@ func Certificates(keywords []string, tlds []string, matcher []string, requests t
 
 		// Check if the certificate domain matches any of the specified keywords
 		template := match.New(keywords, tlds, matcher)
-		template.Match(certificates, keywords, tlds, matcher, certs, requests, severity)
+		template.Match(certificates, keywords, tlds, matcher, certs, requests, severity, paths)
 
 		// Update the spinner message with the number of certificates emitted
 		logMessage := fmt.Sprintf(" Certificates emitted: %d\n ", certs)

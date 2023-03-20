@@ -148,7 +148,7 @@ func TestMatch(t *testing.T) {
     for _, tc := range testCases {
         t.Run(tc.name, func(t *testing.T) {
             // Chama a função Match() com os parâmetros correspondentes.
-            m.Match(tc.msg, tc.keywords, tc.tlds, tc.matchers, tc.depth, tc.req, tc.severity, []string{})
+            m.Match(tc.msg, tc.keywords, tc.tlds, tc.matchers, tc.depth, tc.req, tc.severity, []string{}, "teste")
             // Exibe o resultado no console.
             fmt.Printf("Test case: %v\n\tExpected: %v\n\t", tc.name, tc.expected)
         })

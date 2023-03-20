@@ -22,6 +22,12 @@ type Models struct {
     Paths []string 
 }
 
+type MatcherInfo struct {
+    ID       string
+    Template string
+    Pattern  string
+}
+
 var colorize func(interface{}) string
 
 func init() {
@@ -50,7 +56,7 @@ func Info(template types.Templates, loadsTags []string) {
 func Summary(template types.Templates, matchers []string, loadsTemplates []string) {
 
     var (
-        
+
         Templates = len(loadsTemplates)
         Keywords  = len(template.Info.Keywords)
         Tags      = len(template.Info.Classification.Tags)
@@ -86,6 +92,7 @@ func Templates(options types.Options) ([]Models, []string, []string) {
     // Slice para armazenar todos os paths de request
     var Path []string
     var Matcher []string
+    var matchersInfoSlice []MatcherInfo
 
     // Initialize a map to store tags for each loaded YAML
     tagsMap := make(map[string]map[string]bool)
@@ -115,12 +122,14 @@ func Templates(options types.Options) ([]Models, []string, []string) {
         }
 
         // Converter os valores de matchers em []string
-        var matchersSlice []string
         for _, matcher := range template.Info.Matchers {
-            matchersSlice = append(matchersSlice, matcher.Pattern)
-            Matcher = append(Matcher,  matcher.Pattern) // Adicionar o path à slice geral
+            matchersInfo := MatcherInfo{
+                ID:       template.Info.ID,
+                Pattern:  matcher.Pattern,
+            }
+            matchersInfoSlice = append(matchersInfoSlice, matchersInfo)
+            Matcher = append(Matcher, matcher.Pattern) // Adicionar o path à slice geral
         }
-
         // Converter os valores de tlds em []string
         var tldsSlice []string
         for _, tld := range template.Info.Tlds {
@@ -148,6 +157,7 @@ func Templates(options types.Options) ([]Models, []string, []string) {
         processed[template.Info.ID] = true
 
         Info(template, template.Info.Classification.Tags)
+
     }
 
     // Print summary information about loaded templates, tags, and keywords

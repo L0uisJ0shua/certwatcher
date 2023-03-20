@@ -239,9 +239,10 @@ func (m *Matcher) Match(certificates types.Message, keywords, tlds, matchers []s
             doc, _, err := Get(url, params)
 
             if err != nil {
-                // log.Warning().Msgf("%s", err)
                 return
             }
+
+            fmt.Println(id)
 
             // Verifica se há correspondência com os matchers utilizando expressões regulares.
             for _, matcher := range m.Matchers {

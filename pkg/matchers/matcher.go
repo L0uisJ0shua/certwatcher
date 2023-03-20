@@ -49,42 +49,33 @@ func Severity(level string) (severity.Severity, error) {
     }
 }
 
-func addPathsToSlice(params *RequestParams) []string {
-    var Paths []string
-
-      // verifica se params.Paths é igual a zero e adiciona "/" ao slice "Paths" caso seja
-    if len(Paths) == 0 {
-        Paths = append(Paths, "/")
-    }
-    
-    // adiciona o conteúdo de "params.Paths" ao slice "Paths"
-    Paths = append(Paths, params.Paths...)
-
-    // imprime o slice e o seu tamanho
-    log.Debug().Msgf("Slice: %q\nTamanho: %d\n", Paths, len(Paths))
-    
-    return Paths
-}
 
 func Get(url string, params *RequestParams) (*goquery.Document, int, error) {
     // Cria um cliente HTTP com timeout definido em 30 segundos
     client := &http.Client{
-        Timeout: 30 * time.Second,
+        Timeout: 60 * time.Second,
     }
 
-    var paths = addPathsToSlice(params)
+    var Paths []string
+
+    if len(params.Paths) == 0 {
+        Paths = append(Paths, "/")
+    }
+
+    // adiciona o conteúdo de "params.Paths" ao slice "Paths"
+    Paths = append(Paths, params.Paths...)
 
     // Cria um canal para receber os resultados das goroutines
-    results := make(chan getResult, len(paths))
+    results := make(chan getResult, len(Paths))
 
     // Cria uma WaitGroup para esperar todas as goroutines terminarem
     var wg sync.WaitGroup
 
     // Armazena as URLs completas das solicitações enviadas
-    requests := make([]string, 0, len(paths))
+    requests := make([]string, 0, len(Paths))
 
     // Realiza as solicitações em paralelo
-    for _, path := range paths {
+    for _, path := range Paths {
         wg.Add(1)
 
         // Monta a URL para a requisição
@@ -93,7 +84,7 @@ func Get(url string, params *RequestParams) (*goquery.Document, int, error) {
         // Adiciona a URL completa na lista de solicitações
         requests = append(requests, reqURL)
 
-        log.Debug().Msgf("%s", reqURL)
+        // log.Debug().Msgf("%s", reqURL)
 
         go func(url string, method string) {
             defer wg.Done()
@@ -157,9 +148,12 @@ func Get(url string, params *RequestParams) (*goquery.Document, int, error) {
     // Returns the final results
     if doc != nil {
         log.Debug().Msgf("Successfully received response for requests: %v\n", requests)
+        // title := doc.Find("title").Text()
+        // log.Info().Msgf("Title %s", title)
+
         return doc, statusCode, nil
     } else if err != nil {
-        log.Warning().Msgf("Encountered an error during request: %v", err)
+        // log.Warning().Msgf("Encountered an error during request: %v", err)
         return nil, 0, err
     } else {
         log.Warning().Msgf("No successful response received for url: %s", url)
@@ -193,7 +187,7 @@ func New(keywords, tlds, matchers []string) *Matcher {
     }
 }
 
-func (m *Matcher) Match(certificates types.Message, keywords, tlds, matchers []string, certs int, requests types.Request, level string, paths []string) {
+func (m *Matcher) Match(certificates types.Message, keywords, tlds, matchers []string, certs int, requests types.Request, level string, paths []string, id string) {
 
     go func() {
 
@@ -201,7 +195,7 @@ func (m *Matcher) Match(certificates types.Message, keywords, tlds, matchers []s
         patterns := 0
 
         // Cria o cache com uma expiração padrão de 5 minutos.
-        c := cache.New(60*time.Second, 160*time.Second)
+        c := cache.New(1*time.Minute, 5*time.Minute)
 
         // Remove o "*" prefixo do domínio e armazena em 'domain'.
         domain := strings.Replace(certificates.Domain, "*.", "", -1)
@@ -209,7 +203,10 @@ func (m *Matcher) Match(certificates types.Message, keywords, tlds, matchers []s
         // Monta a URL para a requisição.
         url := fmt.Sprintf("https://%s", domain)
 
-        var matcherMatched string
+        level, _ := Severity(level)
+
+
+        var catcher string
         // Verifica se a resposta já está em cache.
         if cached, ok := c.Get(url); ok {
             // Se a resposta estiver em cache, utiliza a resposta armazenada em cache.
@@ -227,7 +224,7 @@ func (m *Matcher) Match(certificates types.Message, keywords, tlds, matchers []s
                     break
                 }
                 if re.MatchString(doc.Text()) {
-                    matcherMatched = matcher
+                    catcher = matcher
                     break
                 }
             }
@@ -242,18 +239,20 @@ func (m *Matcher) Match(certificates types.Message, keywords, tlds, matchers []s
             doc, _, err := Get(url, params)
 
             if err != nil {
-                log.Warning().Msgf("%s", err)
+                // log.Warning().Msgf("%s", err)
                 return
             }
 
             // Verifica se há correspondência com os matchers utilizando expressões regulares.
             for _, matcher := range m.Matchers {
+                log.Debug().Msgf("%s", matcher)
                 re, err := regexp.Compile(matcher)
                 if err != nil {
                     break
                 }
                 if re.MatchString(doc.Text()) {
-                    matcherMatched = matcher
+                    catcher = matcher
+                    log.Debug().Msgf("%s", re.MatchString(doc.Text()))
                     break
                 }
             }
@@ -286,29 +285,28 @@ func (m *Matcher) Match(certificates types.Message, keywords, tlds, matchers []s
             levels = severity.Low
         }
 
-        level, _ := Severity(level)
-
-        if len(keywdors) > 0 {
+        switch {
+        case len(keywdors) > 0:
             log.Info().Msgf("Suspicious activity found at %s\n", time.Now().Format("01-02-2006 15:04:05"))
             log.Info().Msgf("Number of certificates issued: %d\n", certs)
-            if len(matcherMatched) > 0 {
-                log.Info().Msgf("Matching regular expression found: %s", matcherMatched)
-                core.Log(certificates, keywdors, severity.High, tlds, matchers)
+            if len(catcher) > 0 {
+                log.Info().Msgf("Matching regular expression found: %s", catcher)
+                core.LogCertificates(certificates, keywdors, severity.High, tlds, matchers)
                 return
             } else if tldMatched {
                 log.Info().Msg("Domain matched TLDs (Top-Level Domains)")
             }
-            core.Log(certificates, keywdors, levels, tlds, matchers)
-        } else {
-          
-            if len(matcherMatched) > 0 {
-                log.Info().Msgf("Pattern successfully found %s", time.Now().Format("01-02-2006 15:04:05"))
+            core.LogCertificates(certificates, keywdors, levels, tlds, matchers)
+        default:
+            if len(catcher) > 0 {
+                log.Info().Msgf("Pattern successfully found %s\n", time.Now().Format("01-02-2006 15:04:05"))
                 log.Info().Msgf("Number of certificates issued: %d\n", certs)
-                log.Info().Msgf("Matching regular expression found: %s", matcherMatched)
-                core.Log(certificates, keywdors, level, tlds, matchers)
+                log.Info().Msgf("Matching regular expression found: %s\n", catcher)
+                core.Log(id, "http", level, certificates.Domain, matchers)
+                core.LogCertificates(certificates, keywdors, level, tlds, matchers)
                 return
             }
-        }   
+        }
  
     }()
 }

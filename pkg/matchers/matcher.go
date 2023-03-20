@@ -148,9 +148,6 @@ func Get(url string, params *RequestParams) (*goquery.Document, int, error) {
     // Returns the final results
     if doc != nil {
         log.Debug().Msgf("Successfully received response for requests: %v\n", requests)
-        // title := doc.Find("title").Text()
-        // log.Info().Msgf("Title %s", title)
-
         return doc, statusCode, nil
     } else if err != nil {
         // log.Warning().Msgf("Encountered an error during request: %v", err)
@@ -205,7 +202,6 @@ func (m *Matcher) Match(certificates types.Message, keywords, tlds, matchers []s
 
         level, _ := Severity(level)
 
-
         var catcher string
         // Verifica se a resposta já está em cache.
         if cached, ok := c.Get(url); ok {
@@ -241,8 +237,6 @@ func (m *Matcher) Match(certificates types.Message, keywords, tlds, matchers []s
             if err != nil {
                 return
             }
-
-            fmt.Println(id)
 
             // Verifica se há correspondência com os matchers utilizando expressões regulares.
             for _, matcher := range m.Matchers {

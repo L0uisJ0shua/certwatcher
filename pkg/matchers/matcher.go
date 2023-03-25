@@ -1,37 +1,63 @@
 package matchers
 
 import (
-   
-    "github.com/PuerkitoBio/goquery"
-    "github.com/projectdiscovery/nuclei/v2/pkg/model/types/severity"
-    "pkg/core"
-    "pkg/types"
-    log "github.com/projectdiscovery/gologger"
-    "github.com/patrickmn/go-cache"
     "fmt"
-    "net/http"
-    "time"
-    "bytes"
+    "net/url"
+    "pkg/core"
+    "pkg/http"
+    "pkg/types"
     "regexp"
     "strings"
-    "sync"
+    "time"
+
+    log "github.com/projectdiscovery/gologger"
+    "github.com/projectdiscovery/nuclei/v2/pkg/model/types/severity"
+    "golang.org/x/net/publicsuffix"
 )
 
 type Matcher struct {
-    Keywords []string
-    TLDs     []string
-    Matchers []string
-}
-
-type RequestParams struct {
-    Method string
-    Paths  []string
-}
-
-type getResult struct {
-    doc        *goquery.Document
-    statusCode int
-    err        error
+    // description: |
+    //   Keywords Matcher Contains in Domain Stream
+    // values:
+    //   - "amazon"
+    //   - "google"
+    Keywords []string `yaml:"keywords,omitempty" json:"keywords,omitempty" jsonschema:"title=Keywords to match,description=Keywords to match for the response"`
+    Matchers []string `yaml:"matchers,omitempty" json:"keywords,omitempty" jsonschema:"title=Keywords to match,description=Keywords to match for the response"`
+    // description: |
+    //   Tld Matcher Contains in Domain Stream
+    // values:
+    //   - "com"
+    //   - "io"
+    TLDs []string `yaml:"tld,omitempty" json:"tld,omitempty" jsonschema:"title=Tlds to match,description=Tlds to match for the response"`
+    // description: |
+    //   Condition is the optional condition between two matcher variables. By default,
+    //   the condition is assumed to be OR.
+    // values:
+    //   - "and"
+    //   - "or"
+    Condition string `yaml:"matcher-condition,omitempty" json:"matcher-condition,omitempty" jsonschema:"title=Matcher condition between matcher variables,description=Condition between the matcher variables,enum=and,enum=or"`
+    // description: |
+    //   Status are the acceptable status codes for the response.
+    // examples:
+    //   - value: >
+    //       []int{200, 302}
+    Status []int `yaml:"status,omitempty" json:"status,omitempty" jsonschema:"title=status StatusCode to match,description=Status to match for the response"`
+    // description: |
+    //   Size is the acceptable size for the response
+    // examples:
+    //   - value: >
+    //       []int{3029, 2042}
+    Size []int `yaml:"size,omitempty" json:"size,omitempty" jsonschema:"title=Size to match,description=Size to match for the response"`
+    // description: |
+    //   Regex contains Regular Expression patterns required to be present in the response part.
+    // examples:
+    //   - name: Match for Stripe Key via Regex
+    //     value: >
+    //       []string{`(?i)stripe(.{0,20})?sk_test_[0-9a-zA-Z]{24}`}
+    //   - name: Matching APP variables found in response body
+    //     value: >
+    //       []string{`(?m)^DB_(HOST|PASSWORD|DATABASE)`}
+    Pattern []string `yaml:"pattern,omitempty" json:"regex,omitempty" jsonschema:"title=regex to match in response,description=Regex contains regex patterns required to be present in the response part"`
 }
 
 func Severity(level string) (severity.Severity, error) {
@@ -49,133 +75,6 @@ func Severity(level string) (severity.Severity, error) {
     }
 }
 
-
-func Get(url string, params *RequestParams) (*goquery.Document, int, error) {
-    // Cria um cliente HTTP com timeout definido em 30 segundos
-    client := &http.Client{
-        Timeout: 60 * time.Second,
-    }
-
-    var Paths []string
-
-    if len(params.Paths) == 0 {
-        Paths = append(Paths, "/")
-    }
-
-    // adiciona o conteúdo de "params.Paths" ao slice "Paths"
-    Paths = append(Paths, params.Paths...)
-
-    // Cria um canal para receber os resultados das goroutines
-    results := make(chan getResult, len(Paths))
-
-    // Cria uma WaitGroup para esperar todas as goroutines terminarem
-    var wg sync.WaitGroup
-
-    // Armazena as URLs completas das solicitações enviadas
-    requests := make([]string, 0, len(Paths))
-
-    // Realiza as solicitações em paralelo
-    for _, path := range Paths {
-        wg.Add(1)
-
-        // Monta a URL para a requisição
-        reqURL := url + path
-
-        // Adiciona a URL completa na lista de solicitações
-        requests = append(requests, reqURL)
-
-        // log.Debug().Msgf("%s", reqURL)
-
-        go func(url string, method string) {
-            defer wg.Done()
-
-            // Cria uma nova requisição HTTP com o método especificado
-            req, err := http.NewRequest(method, url, nil)
-            if err != nil {
-                results <- getResult{err: err}
-                return
-            }
-
-            // Envia a requisição e espera pela resposta
-            resp, err := client.Do(req)
-            if err != nil {
-                results <- getResult{err: err}
-                return
-            }
-            defer resp.Body.Close()
-
-            // Verifica se a resposta teve sucesso (status code 200)
-            if resp.StatusCode != http.StatusOK {
-                results <- getResult{err: fmt.Errorf("response status code: %d", resp.StatusCode)}
-                return
-            }
-
-            // Faz o parse do response utilizando o goquery
-            doc, err := goquery.NewDocumentFromReader(resp.Body)
-            if err != nil {
-                results <- getResult{err: err}
-                return
-            }
-
-            results <- getResult{doc: doc, statusCode: resp.StatusCode}
-        }(reqURL, params.Method)
-    }
-
-    // Fecha o canal quando todas as goroutines terminarem
-    go func() {
-        wg.Wait()
-        close(results)
-    }()
-
-    // Coleta os resultados das goroutines
-    var doc *goquery.Document
-    var statusCode int
-    var err error
-    for result := range results {
-        if result.err != nil {
-            err = result.err
-            continue
-        }
-
-        doc = result.doc
-        statusCode = result.statusCode
-        break
-    }
-
-    // Imprime a lista de solicitações
-    // log.Debug().Msgf("Number of Requests Sent: %v\n", requests)
-
-    // Returns the final results
-    if doc != nil {
-        log.Debug().Msgf("Successfully received response for requests: %v\n", requests)
-        return doc, statusCode, nil
-    } else if err != nil {
-        // log.Warning().Msgf("Encountered an error during request: %v", err)
-        return nil, 0, err
-    } else {
-        log.Warning().Msgf("No successful response received for url: %s", url)
-        return nil, 0, nil
-    }
-
-}
-
-
-func HashTLD(domain string, tld string) bool {
-    // Verifica se o TLD tem pelo menos duas letras e é composto apenas por caracteres alfanuméricos
-    if len(tld) < 2 || !regexp.MustCompile(`^[a-zA-Z0-9]+$`).MatchString(tld) {
-        return false
-    }
-
-    // Separa o domínio em partes, usando o ponto como delimitador
-    parts := strings.Split(domain, ".")
-    if len(parts) < 2 {
-        return false
-    }
-
-    // Verifica se a última parte do domínio é o TLD desejado
-    return parts[len(parts)-1] == tld
-}
-
 func New(keywords, tlds, matchers []string) *Matcher {
     return &Matcher{
         Keywords: keywords,
@@ -184,18 +83,30 @@ func New(keywords, tlds, matchers []string) *Matcher {
     }
 }
 
-func (m *Matcher) Match(certificates types.Message, keywords, tlds, matchers []string, certs int, requests types.Request, level string, paths []string, id string) {
+func parseDomain(domain string) (string, error) {
+    u, err := url.Parse(fmt.Sprintf("https://%s", domain))
+    if err != nil {
+        return "", err
+    }
+    domain, err = publicsuffix.EffectiveTLDPlusOne(u.Hostname())
+    if err != nil {
+        return "", err
+    }
+    return domain, nil
+}
+
+func (m *Matcher) Match(certificates types.Message, certs int, statusCode []int, sizesCodes []int, requests types.Request, level string, templateID string) {
 
     go func() {
 
         // Inicializa a variável patterns com o valor 0.
         patterns := 0
 
-        // Cria o cache com uma expiração padrão de 5 minutos.
-        c := cache.New(1*time.Minute, 5*time.Minute)
-
-        // Remove o "*" prefixo do domínio e armazena em 'domain'.
-        domain := strings.Replace(certificates.Domain, "*.", "", -1)
+        domain, err := parseDomain(certificates.Domain)
+        if err != nil {
+            log.Debug().Msg("Error parsing domain")
+            return
+        }
 
         // Monta a URL para a requisição.
         url := fmt.Sprintf("https://%s", domain)
@@ -204,104 +115,87 @@ func (m *Matcher) Match(certificates types.Message, keywords, tlds, matchers []s
 
         var catcher string
         // Verifica se a resposta já está em cache.
-        if cached, ok := c.Get(url); ok {
-            // Se a resposta estiver em cache, utiliza a resposta armazenada em cache.
-            log.Info().Msgf("Found cached response for url %s", url)
-            doc, err := goquery.NewDocumentFromReader(bytes.NewReader(cached.([]byte)))
+        params := &http.Request{
+            Method: requests.Method,
+            Paths:  requests.Path,
+        }
+
+        // Se a resposta não estiver em cache, faz a requisição HTTP.
+        doc, responseStatusCode, responseSizesCode, err := http.Requests(url, params)
+
+        if err != nil {
+            return
+        }
+
+        status, matchStatusCode := m.MatchStatusCodes(responseStatusCode, statusCode)
+
+        // Verifica se há correspondência com os matchers utilizando expressões regulares.
+        for _, matcher := range m.Matchers {
+
+            re, err := regexp.Compile(matcher)
             if err != nil {
-                log.Warning().Msgf("Error parsing cached response for url %s: %s", url, err)
-                return
-            }
-            // Verifica se há correspondência com os matchers utilizando expressões regulares.
-            for _, matcher := range m.Matchers {
-                re, err := regexp.Compile(matcher)
-                if err != nil {
-                    log.Warning().Msgf("%s", err)
-                    break
-                }
-                if re.MatchString(doc.Text()) {
-                    catcher = matcher
-                    break
-                }
-            }
-        } else {
-
-            params := &RequestParams{
-                Method: requests.Method,
-                Paths:  paths,
+                break
             }
 
-            // Se a resposta não estiver em cache, faz a requisição HTTP.
-            doc, _, err := Get(url, params)
-
-            if err != nil {
-                return
-            }
-
-            // Verifica se há correspondência com os matchers utilizando expressões regulares.
-            for _, matcher := range m.Matchers {
-                log.Debug().Msgf("%s", matcher)
-                re, err := regexp.Compile(matcher)
-                if err != nil {
-                    break
-                }
-                if re.MatchString(doc.Text()) {
-                    catcher = matcher
-                    log.Debug().Msgf("%s", re.MatchString(doc.Text()))
-                    break
-                }
+            if re.MatchString(doc.Text()) {
+                catcher = matcher
+                break
             }
         }
+
         // Verifica se o domínio do objeto certificates termina com algum TLD.
-        var tldMatched bool
-        for _, tld := range m.TLDs {
-            if HashTLD(certificates.Domain, tld) {
-                // Incrementa patterns em 1 se houver uma correspondência e sai do loop.
-                patterns++
-                tldMatched = true
-                break
-            }
+        tld, matchTLD := m.MatchTLD(domain, m.TLDs)
+
+        if matchTLD {
+            patterns++
         }
-        var keywdors string
-        // Verifica se o campo SubjectAltName do objeto certificates contém alguma palavra-chave.
-        for _, keyword := range m.Keywords {
-            if strings.Contains(certificates.Domain, keyword) {
-                // Incrementa patterns em 1 se houver uma correspondência e sai do loop.
-                keywdors = keyword
-                break
-            }
+
+        keywords, matchKeyword := m.MatchKeywords(domain, m.Keywords)
+
+        if matchKeyword {
+            patterns++
         }
+
+        keyword := strings.Join(keywords, ", ")
 
         var levels severity.Severity
         switch {
+        case patterns >= 3:
+            levels = severity.High
         case patterns >= 1:
             levels = severity.Medium
         default:
             levels = severity.Low
         }
 
+        if matchStatusCode {
+            log.Debug().Str("requests", fmt.Sprintf("%v", domain)).Str("status", fmt.Sprintf("%d", status)).Str("sizes", fmt.Sprintf("%d", responseSizesCode)).Msg("HTTP Request Returned Match Size Code")
+        }
+
         switch {
-        case len(keywdors) > 0:
+        case len(keyword) > 0:
             log.Info().Msgf("Suspicious activity found at %s\n", time.Now().Format("01-02-2006 15:04:05"))
             log.Info().Msgf("Number of certificates issued: %d\n", certs)
+            log.Info().Msgf("Domain Keyword Match (%s)", keyword)
             if len(catcher) > 0 {
                 log.Info().Msgf("Matching regular expression found: %s", catcher)
-                core.LogCertificates(certificates, keywdors, severity.High, tlds, matchers)
+                core.LogCertificates(certificates, keyword, severity.High, m.TLDs, m.Matchers)
                 return
-            } else if tldMatched {
-                log.Info().Msg("Domain matched TLDs (Top-Level Domains)")
             }
-            core.LogCertificates(certificates, keywdors, levels, tlds, matchers)
+            if matchTLD {
+                log.Info().Msgf("Domain matched TLDs (Top-Level Domains) %s", tld)
+            }
+            core.LogCertificates(certificates, keyword, levels, m.TLDs, m.Matchers)
         default:
             if len(catcher) > 0 {
                 log.Info().Msgf("Pattern successfully found %s\n", time.Now().Format("01-02-2006 15:04:05"))
                 log.Info().Msgf("Number of certificates issued: %d\n", certs)
                 log.Info().Msgf("Matching regular expression found: %s\n", catcher)
-                core.Log(id, "http", level, certificates.Domain, matchers)
-                core.LogCertificates(certificates, keywdors, level, tlds, matchers)
+                core.Log(templateID, "http", level, domain, strings.Split(catcher, " "))
+                core.LogCertificates(certificates, keyword, level, m.TLDs, m.Matchers)
                 return
             }
         }
- 
+
     }()
 }

@@ -8,18 +8,19 @@ import (
 	log "github.com/projectdiscovery/gologger"
 
 	certstream "pkg/certstream"
+	"pkg/core"
 	match "pkg/matchers"
-	types "pkg/types"
+	"pkg/types"
 )
 
 // Certificates captures certificates from a CertStream, a real-time feed of newly issued SSL/TLS certificates.
 // It takes a slice of keywords to check against the domain name of each certificate received and a list of valid TLDs.
-func Certificates(keywords []string, tlds []string, matcher []string, requests types.Request, severity string, paths []string, id string) {
+func Certificates(templates []core.Models) {
 	// Create a new spinner and start it in a goroutine
-	s := spinner.New(spinner.CharSets[14], 100*time.Millisecond)
+	s := spinner.New(spinner.CharSets[14], 120*time.Millisecond)
 	go func() {
 		s.Start()
-		for range time.Tick(30 * time.Second) {
+		for range time.Tick(120 * time.Second) {
 			s.Restart()
 		}
 	}()
@@ -35,6 +36,7 @@ func Certificates(keywords []string, tlds []string, matcher []string, requests t
 
 	// Iterate over each certificate event received from CertStream
 	for event := range stream.GetCertificates() {
+
 		// Increment the counter for the number of certificates emitted
 		certs++
 
@@ -48,13 +50,16 @@ func Certificates(keywords []string, tlds []string, matcher []string, requests t
 		}
 
 		// Check if the certificate domain matches any of the specified keywords
-		template := match.New(keywords, tlds, matcher)
-		template.Match(certificates, keywords, tlds, matcher, certs, requests, severity, paths, id)
+		for _, tmpl := range templates {
+			template := match.New(tmpl.Keywords, tmpl.TLDs, tmpl.Matchers)
+			template.Match(certificates, certs, tmpl.Status, tmpl.Sizes, tmpl.Requests, tmpl.Severity, tmpl.ID)
+		}
 
 		// Update the spinner message with the number of certificates emitted
 		logMessage := fmt.Sprintf(" Certificates emitted: %d\n", certs)
 		s.Suffix = logMessage
 	}
+
 	// Stop the spinner
 	s.Stop()
 }

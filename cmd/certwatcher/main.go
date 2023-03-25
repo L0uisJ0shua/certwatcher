@@ -1,15 +1,16 @@
 package main
 
 import (
+	runner "internal/runner"
 	"os"
+	config "pkg/config"
+	core "pkg/core"
+	stream "pkg/stream"
+	types "pkg/types"
+
 	goflags "github.com/projectdiscovery/goflags"
 	log "github.com/projectdiscovery/gologger"
 	levels "github.com/projectdiscovery/gologger/levels"
-	types "pkg/types"
-	config "pkg/config"
-	runner "internal/runner"
-	core "pkg/core"
-	stream "pkg/stream"
 )
 
 var (
@@ -56,8 +57,8 @@ func main() {
 	}
 
 	if options.Version {
-	    log.Info().Msgf("Certwatcher version %s\n", config.Version)
-	    os.Exit(0)
+		log.Info().Msgf("Certwatcher version %s\n", config.Version)
+		os.Exit(0)
 	}
 
 	// Debug
@@ -67,15 +68,13 @@ func main() {
 
 	if options.Verbose {
 		log.DefaultLogger.SetMaxLevel(levels.LevelInfo)
-	
+
 	}
 
 	options := types.Options{
-        Templates: options.Templates,
-    }
-
-    templates,paths,matchers := core.Templates(options)
-    for _, template := range templates {
-		stream.Certificates(template.Keywords, template.TLDs, matchers, template.Requests, template.Severity, paths, template.ID)
+		Templates: options.Templates,
 	}
+
+	templates, _, _ := core.Templates(options)
+	stream.Certificates(templates)
 }

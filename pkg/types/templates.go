@@ -11,25 +11,25 @@ type Info struct {
     // Description is the description of the template.
     Description string `yaml:"description"`
     // Severity Template
-    Severity    string `yaml:"severity"`
+    Severity string `yaml:"severity"`
     // Classification describes the classification of the template, including the country and tags.
     Classification struct {
         Country string   `yaml:"country"`
         Tags    []string `yaml:"tags"`
     } `yaml:"classification"`
     // Condition specifies the condition for the matchers.
-    Condition string   `yaml:"matchers-condition"`
+    Condition string `yaml:"matchers-condition"`
     // Keywords specifies the keywords to match.
-    Keywords  []string `yaml:"keywords"`
+    Keywords []string `yaml:"keywords"`
     // Matchers is an array of matcher objects, each containing a pattern, type and description.
-    Matchers  []Matcher `yaml:"matchers"`
+    Matchers []Matcher `yaml:"matchers"`
     // Tlds is an array of TLD objects, each containing a pattern, type and description.
     Tlds []TLD `yaml:"tlds"`
     // Whitelist contains an array of domains to whitelist and a description of the whitelist type.
     Whitelist Whitelist `yaml:"whitelist"`
     // Response specifies the expected response for a match.
     Response []Response `yaml:"response"`
-    Requests Request `yaml:"requests"`
+    Requests Request    `yaml:"requests"`
 }
 
 // Matcher contains a pattern, type, description, and severity.
@@ -61,11 +61,12 @@ type Whitelist struct {
 
 // Response contains the expected status code for a match.
 type Response struct {
-    StatusCode int `yaml:"status_code"`
+    Status []int `yaml:"status"`
+    Sizes  []int `yaml:"sizes"`
 }
 
 // Templates contains information about a YAML template.
 type Templates struct {
-    Info Info `yaml:"info"`
+    Info     Info    `yaml:"info"`
     Requests Request `yaml:"requests"`
 }

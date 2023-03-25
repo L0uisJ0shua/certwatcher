@@ -2,23 +2,17 @@ package certstream
 
 import (
 	"encoding/json"
-	"github.com/gorilla/websocket"
-	log "github.com/projectdiscovery/gologger"
 	"pkg/types"
 	"time"
-)
 
-// CertStreamEvent represents a single event from the CertStream
-type CertStreamEvent = types.CertStreamEvent
+	"github.com/gorilla/websocket"
+	log "github.com/projectdiscovery/gologger"
+)
 
 // CertStream is a structure to handle the connection to the CertStream
 type CertStream struct {
 	URL string
 }
-
-const (
-	period time.Duration = 15 * time.Second
-)
 
 // NewCertStream creates a new CertStream
 func NewCertStream() *CertStream {
@@ -28,31 +22,28 @@ func NewCertStream() *CertStream {
 }
 
 // GetCertificates retrieves a stream of new certificates from the CertStream
-func (c *CertStream) GetCertificates() chan *CertStreamEvent {
-	certificates := make(chan *CertStreamEvent)
+func (c *CertStream) GetCertificates() chan *types.CertStreamEvent {
+	certificates := make(chan *types.CertStreamEvent)
 	go func() {
-
 		defer close(certificates)
 
 		for {
 			conn, _, err := websocket.DefaultDialer.Dial(c.URL, nil)
 			if err != nil {
-				time.Sleep(5 * time.Second)
-				log.Debug().Msgf("Error dialing certstream: %d", err)
+				log.Warning().Msgf("Failed to dial CertStream: %v", err)
 				continue
 			}
-			defer conn.Close()
 
-				done := make(chan struct{})
+			done := make(chan struct{})
 
 			go func() {
-				ticker := time.NewTicker(period)
+				ticker := time.NewTicker(defaultTimeout)
 				defer ticker.Stop()
 
 				for {
 					select {
 					case <-ticker.C:
-						log.Debug().Msgf("Error dialing certstream: %d", websocket.PingMessage)
+						// Do nothing, just keep sending heartbeats.
 					case <-done:
 						return
 					}
@@ -60,17 +51,16 @@ func (c *CertStream) GetCertificates() chan *CertStreamEvent {
 			}()
 
 			for {
-				conn.SetReadDeadline(time.Now().Add(15 * time.Second))
 				_, message, err := conn.ReadMessage()
 				if err != nil {
-					log.Debug().Msgf("Error reading message from certstream %s", err)
+					log.Warning().Msgf("Error reading message from CertStream: %v", err)
 					break
 				}
 
-				var event CertStreamEvent
+				var event types.CertStreamEvent
 				err = json.Unmarshal(message, &event)
 				if err != nil {
-					log.Debug().Msgf("Error Unmarshal message from certstream %s", err)
+					log.Warning().Msgf("Error parsing message from CertStream: %v", err)
 					continue
 				}
 
@@ -80,7 +70,12 @@ func (c *CertStream) GetCertificates() chan *CertStreamEvent {
 
 				certificates <- &event
 			}
+
+			conn.Close()
 		}
 	}()
+
 	return certificates
 }
+
+const defaultTimeout = 5 * time.Second

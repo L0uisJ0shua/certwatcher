@@ -3,78 +3,42 @@ package main
 import (
 	runner "internal/runner"
 	"os"
-	config "pkg/config"
+	"os/signal"
 	core "pkg/core"
 	stream "pkg/stream"
 	types "pkg/types"
+	"syscall"
 
-	goflags "github.com/projectdiscovery/goflags"
 	log "github.com/projectdiscovery/gologger"
 	levels "github.com/projectdiscovery/gologger/levels"
 )
 
-var (
-	options = &types.Options{}
-	message = &types.Message{}
-)
-
-func init() {
-	// Configures the logger to print the name of the file and the line
-	// where the log was registered.
-	log.DefaultLogger.SetMaxLevel(levels.LevelInfo)
-}
-
 func main() {
 
-	flagSet := goflags.NewFlagSet()
-	flagSet.SetDescription("This project is in active development not ready for production.")
+	// Analisar as opções da linha de comando
+	options := runner.ParseOptions()
 
-	// Templates configs
-	flagSet.CreateGroup("templates", "Templates",
-		flagSet.StringSliceVarP(&options.Templates, "template", "t", nil, "List of template or template directory to run (comma-separated, file)", goflags.FileCommaSeparatedStringSliceOptions),
-		flagSet.BoolVar(&options.Validate, "validate", false, "Validate the passed templates to certwatcher"),
-	)
-
-	// Browser configs
-	flagSet.CreateGroup("headless", "Headless",
-		flagSet.BoolVar(&options.Headless, "headless", false, "Enable templates that require headless browser support (root user on Linux will disable sandbox)"),
-		flagSet.IntVar(&options.PageTimeout, "timeout", 30, "Seconds to wait for each page in headless mode"),
-		flagSet.BoolVar(&options.PageScreenShot, "screenshot", false, "Configure the program to capture screenshots"),
-	)
-	// Debug
-	flagSet.CreateGroup("debug", "Debug",
-		flagSet.BoolVar(&options.Verbose, "verbose", false, "display verbose information"),
-		flagSet.BoolVar(&options.Debug, "debug", false, "show all requests and responses"),
-		flagSet.BoolVar(&options.Version, "version", false, "show certwatcher version"),
-	)
-
-	runner.Welcome()
-
-	err := flagSet.Parse()
-
-	if err != nil {
-		log.Fatal().Msgf("failed to parse command line flags: %s", err)
-	}
-
-	if options.Version {
-		log.Info().Msgf("Certwatcher version %s\n", config.Version)
-		os.Exit(0)
-	}
-
-	// Debug
-	if options.Debug {
-		log.DefaultLogger.SetMaxLevel(levels.LevelDebug)
-	}
-
-	if options.Verbose {
-		log.DefaultLogger.SetMaxLevel(levels.LevelInfo)
-
-	}
-
-	options := types.Options{
+	// Chamar a função que executa os templates aqui, usando as opções definidas em "options"
+	template := types.Options{
 		Templates: options.Templates,
 	}
 
-	templates, _, _ := core.Templates(options)
+	templates, _, _ := core.Templates(template)
 	stream.Certificates(templates)
+}
+
+func init() {
+
+	// Configures the logger to print the name of the file and the line
+	// where the log was registered.
+	log.DefaultLogger.SetMaxLevel(levels.LevelInfo)
+
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+	// Setup close handler
+	go func() {
+		<-c
+		log.Info().Msg("\rCtrl+C pressed in Terminal, Exiting...")
+		os.Exit(0)
+	}()
 }

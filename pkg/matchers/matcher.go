@@ -21,8 +21,8 @@ type Matcher struct {
     // values:
     //   - "amazon"
     //   - "google"
-    Keywords []string `yaml:"keywords,omitempty" json:"keywords,omitempty" jsonschema:"title=Keywords to match,description=Keywords to match for the response"`
-    Matchers []string `yaml:"matchers,omitempty" json:"keywords,omitempty" jsonschema:"title=Keywords to match,description=Keywords to match for the response"`
+    Keywords []string `yaml:"keywords,omitempty" json:"keywords,omitempty" jsonschema:"title=Keywords to match,description=Keywords to match for the domain"`
+    Matchers []string `yaml:"matchers,omitempty" json:"keywords,omitempty" jsonschema:"title=Matchers to match,description=Matchers to match for the body"`
     // description: |
     //   Tld Matcher Contains in Domain Stream
     // values:
@@ -160,7 +160,7 @@ func (m *Matcher) Match(certificates types.Message, certs int, statusCode []int,
 
         var levels severity.Severity
         switch {
-        case patterns >= 3:
+        case patterns >= 2:
             levels = severity.High
         case patterns >= 1:
             levels = severity.Medium

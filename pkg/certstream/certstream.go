@@ -37,7 +37,7 @@ func (c *CertStream) GetCertificates() chan *types.CertStreamEvent {
 			done := make(chan struct{})
 
 			go func() {
-				ticker := time.NewTicker(defaultTimeout)
+				ticker := time.NewTicker(5 * time.Second)
 				defer ticker.Stop()
 
 				for {
@@ -77,5 +77,3 @@ func (c *CertStream) GetCertificates() chan *types.CertStreamEvent {
 
 	return certificates
 }
-
-const defaultTimeout = 5 * time.Second

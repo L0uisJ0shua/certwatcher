@@ -2,10 +2,14 @@ package http
 
 import (
 	"bytes"
+	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strconv"
 	"sync"
 	"time"
+
+	log "github.com/projectdiscovery/gologger"
 
 	"github.com/PuerkitoBio/goquery"
 )
@@ -59,19 +63,22 @@ func Requests(url string, req *Request) (*goquery.Document, []int, []int, error)
 	var wg sync.WaitGroup
 	wg.Add(len(paths))
 
-	requests := make([]string, len(paths))
-	statusCodes := make([]int, len(paths))
-	sizeCodes := make([]int, 0)
+	var (
+		requests    = make([]string, len(paths))
+		statusCodes = make([]int, len(paths))
+		sizeCodes   []int
+	)
 
 	responses := make(chan response, len(paths))
 
 	for i, path := range paths {
-		requests[i] = url + path
+		url := fmt.Sprintf("%s%s", url, path)
+		requests[i] = url
 
-		go func(path string) {
+		go func(path string, i int) {
 			defer wg.Done()
 
-			req, err := newHTTPRequest(req.Method, url+path)
+			req, err := newHTTPRequest(req.Method, url)
 			if err != nil {
 				responses <- response{err: err}
 				return
@@ -95,11 +102,13 @@ func Requests(url string, req *Request) (*goquery.Document, []int, []int, error)
 				responses <- response{err: err}
 			}
 
-			statusCodes = append(statusCodes, resp.StatusCode)
+			statusCodes[i] = resp.StatusCode
 			sizeCodes = append(sizeCodes, len(body))
 
+			log.Debug().Str("domain", url).Str("status", strconv.Itoa(resp.StatusCode)).Str("size", strconv.Itoa(len(body))).Msg("Request sent")
+
 			responses <- response{doc: doc}
-		}(path)
+		}(path, i)
 	}
 
 	go func() {

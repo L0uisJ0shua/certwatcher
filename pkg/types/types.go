@@ -3,22 +3,24 @@ package types
 import "github.com/projectdiscovery/goflags"
 
 type Message struct {
-    Domain       string
-    Domains      []string
+    Domain         string
+    Domains        []string
     Issuer         string
     Source         string
     SubjectAltName string
 }
 
 type Protocols struct {
-    DNS         string
-    SSL         string
-    Log         string
+    DNS string
+    SSL string
+    Log string
 }
 
 type Options struct {
     Templates      goflags.StringSlice
     Validate       bool
+    Output         string
+    Json           bool
     Headless       bool
     PageTimeout    int
     PageScreenShot bool

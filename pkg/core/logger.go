@@ -3,12 +3,13 @@ package core
 import (
     "strings"
 
+    "fmt"
+    "internal/colorizer"
+    "pkg/types"
+
+    "github.com/logrusorgru/aurora"
     log "github.com/projectdiscovery/gologger"
     "github.com/projectdiscovery/nuclei/v2/pkg/model/types/severity"
-    "github.com/logrusorgru/aurora"
-    "pkg/types"
-    "internal/colorizer"
-    "fmt"
 )
 
 var protocols = &types.Protocols{
@@ -26,28 +27,29 @@ func init() {
     Colorizer = aurora.NewAurora(true)
 }
 
-// The package also includes a Colorizer object, which is used to colorize output for the Logger function. 
+// The package also includes a Colorizer object, which is used to colorize output for the Logger function.
 // The object is initialized in the package's init() function, using the "aurora" package for ANSI color output.
-func Message(id string, name string, templateSeverity severity.Severity, domain string, options []string) string {
+func Message(identify string, name string, templateSeverity severity.Severity, domain string, certs []string) string {
 
     return fmt.Sprintf("[%s] [%s] [%s] %s %s",
-        Colorizer.BrightGreen(id).String(),
+        Colorizer.BrightGreen(identify).String(),
         Colorizer.BrightBlue(name).String(),
         colorizer.GetSeverityColor(templateSeverity),
         Colorizer.White(domain).String(),
-        Colorizer.Cyan(options))
+        Colorizer.Cyan(certs))
 }
 
 // LogMessage logs a message with the specified ID, severity, and domain,
 // along with an array of message strings.
-func Log(id, name string, severity severity.Severity, domain string, message []string) {
-    log.Info().Msgf("%s\n", Message(id, name, severity, domain, message))
+func Log(identify, name string, severity severity.Severity, domain string, certs []string, options ...string) {
+    log.Info().Msgf("%s\n", Message(identify, name, severity, domain, certs))
 }
 
 // Certificate checks for TLD matches and logs messages using LogMessage
 func LogCertificates(certificates types.Message, keyword string, severity severity.Severity, tlds []string, matchers []string) {
     logMessages(certificates, keyword, severity, strings.Join(certificates.Domains, ","), strings.Split(certificates.Issuer, ","))
 }
+
 // logMessages logs multiple messages using LogMessage
 func logMessages(certificates types.Message, keyword string, severity severity.Severity, domains string, issuer []string) {
 

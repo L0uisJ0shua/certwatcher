@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
-
-	log "github.com/projectdiscovery/gologger"
 )
 
 // MatchStatusCode verifica se um código de status HTTP corresponde a um ou mais códigos de status HTTP especificados no objeto Matcher.
@@ -20,9 +18,9 @@ func (m *Matcher) MatchStatusCodes(respStatusCodes, definedStatusCodes []int) ([
 	}
 	if len(matchedStatusCodes) > 0 {
 		return matchedStatusCodes, true
+	} else {
+		return respStatusCodes, false
 	}
-	log.Debug().Msgf("Response Status Code Not Match %d", respStatusCodes)
-	return matchedStatusCodes, false
 }
 
 // MatchSizes verifica se um tamanho corresponde a um ou mais tamanhos especificados no objeto Matcher.
@@ -36,7 +34,7 @@ func (m *Matcher) MatchSizes(respSize int, definedSizes []int) ([]int, bool) {
 	if len(matchedSizes) > 0 {
 		return matchedSizes, true
 	}
-	log.Debug().Msgf("Response Size Not Match %d", respSize)
+	// log.Debug().Msgf("Response Size Not Match %d", respSize)
 	return matchedSizes, false
 }
 
@@ -58,7 +56,7 @@ func (matcher *Matcher) MatchTLD(domain string, tlds []string) (string, bool) {
 			return tld, true
 		}
 	}
-	log.Debug().Msgf("Top Level Domains (%s) Not Match", domain)
+	// log.Debug().Msgf("Top Level Domains (%s) Not Match", domain)
 	return "", false
 }
 

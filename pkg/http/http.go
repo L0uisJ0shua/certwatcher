@@ -1,135 +1,103 @@
 package http
 
 import (
-	"bytes"
 	"fmt"
-	"io/ioutil"
-	"net/http"
-	"strconv"
-	"sync"
+	"strings"
 	"time"
 
+	browser "github.com/EDDYCJY/fake-useragent"
+	"github.com/gocolly/colly/v2"
 	log "github.com/projectdiscovery/gologger"
-
-	"github.com/PuerkitoBio/goquery"
 )
 
 type Request struct {
-	Paths  []string
-	Method string
+	Paths     []string `yaml:"path,omitempty" json:"path,omitempty" jsonschema:"title=paths,description=String paths that represent the URL paths"`
+	Method    string   `yaml:"method,omitempty" json:"method,omitempty" jsonschema:"title=String that specifies the HTTP request description=the default method ("GET") will be used."`
+	Condition string   `yaml:"condition,omitempty" json:"condition,omitempty" jsonschema:"title=Condition of response to match,description=String that specifies a condition to match against the response"`
 }
 
-type response struct {
-	doc        *goquery.Document
-	statusCode int
-	size       int
-	err        error
-}
+const (
+	Timeout = 30 * time.Second
+)
 
-type getResult struct {
-	doc        *goquery.Document
-	statusCode int
-	err        error
-}
+var UserAgent = browser.Random()
 
-func newHTTPConfig() *http.Client {
-	return &http.Client{
-		Timeout: 60 * time.Second,
-	}
-}
-
-func newHTTPRequest(method string, url string) (*http.Request, error) {
-	req, err := http.NewRequest(method, url, nil)
-	if err != nil {
-		return nil, err
-	}
-	return req, nil
-}
-
-func Paths(req *Request) []string {
-	paths := make([]string, 0)
-	if len(req.Paths) == 0 {
-		paths = append(paths, "/")
-	}
-	paths = append(paths, req.Paths...)
-	return paths
-}
-
-func Requests(url string, req *Request) (*goquery.Document, []int, []int, error) {
-	client := newHTTPConfig()
-
-	paths := Paths(req)
-
-	var wg sync.WaitGroup
-	wg.Add(len(paths))
+func Requests(url string, req *Request) (*colly.Response, []int, []int, error) {
 
 	var (
-		requests    = make([]string, len(paths))
-		statusCodes = make([]int, len(paths))
-		sizeCodes   []int
+		status    []int
+		sizes     []int
+		resp      *colly.Response
+		responses = make(chan *colly.Response, len(req.Paths))
+		UserAgent = UserAgent
 	)
 
-	responses := make(chan response, len(paths))
+	c := colly.NewCollector(
+		colly.Async(true),
+		colly.DisallowedDomains("example.com"),
+	)
 
-	for i, path := range paths {
-		url := fmt.Sprintf("%s%s", url, path)
-		requests[i] = url
+	c.SetRequestTimeout(Timeout)
 
-		go func(path string, i int) {
-			defer wg.Done()
+	// Set Random Fake User Agent
+	c.OnRequest(func(r *colly.Request) {
+		r.Headers.Set("User-Agent", UserAgent)
+		method := strings.ToUpper(req.Method)
+		switch method {
+		case "POST":
+			r.Method = "POST"
+		case "HEAD":
+			r.Method = "HEAD"
+		default:
+			r.Method = "GET"
+		}
+		// log.Debug().Msgf("Sending %s request: %s", r.Method, r.URL)
+	})
 
-			req, err := newHTTPRequest(req.Method, url)
-			if err != nil {
-				responses <- response{err: err}
-				return
-			}
+	c.OnResponse(func(r *colly.Response) {
+		status = append(status, r.StatusCode)
+		sizes = append(sizes, len(r.Body))
+		responses <- r
+		log.Debug().
+			Str("domain", fmt.Sprintf("%s", r.Request.URL)).
+			Str("status", fmt.Sprintf("%d", r.StatusCode)).
+			Msg("Received response from")
+	})
 
-			resp, err := client.Do(req)
-			if err != nil {
-				responses <- response{err: err}
-				return
-			}
+	if len(req.Paths) == 0 {
+		req.Paths = []string{"/"}
+		log.Debug().
+			Str("path", fmt.Sprintf("%s", req.Paths[0])).
+			Msg("Request paths not provided, using default path")
+	}
 
-			defer resp.Body.Close()
-
-			body, err := ioutil.ReadAll(resp.Body)
-			if err != nil {
-				responses <- response{err: err}
-			}
-
-			doc, err := goquery.NewDocumentFromReader(bytes.NewReader(body))
-			if err != nil {
-				responses <- response{err: err}
-			}
-
-			statusCodes[i] = resp.StatusCode
-			sizeCodes = append(sizeCodes, len(body))
-
-			log.Debug().Str("domain", url).Str("status", strconv.Itoa(resp.StatusCode)).Str("size", strconv.Itoa(len(body))).Msg("Request sent")
-
-			responses <- response{doc: doc}
-		}(path, i)
+	for _, path := range req.Paths {
+		c.Visit(fmt.Sprintf("%s%s", url, path))
 	}
 
 	go func() {
-		wg.Wait()
+		c.Wait()
 		close(responses)
 	}()
 
-	var doc *goquery.Document
-	var err error
-	for res := range responses {
-		if res.err != nil {
-			err = res.err
+	for response := range responses {
+		if response == nil {
 			continue
 		}
-
-		doc = res.doc
-
-		if doc != nil {
-			continue
-		}
+		resp = response
 	}
 
-	return doc, statusCodes, sizeCodes, err
+	if len(status) == 0 {
+		err := fmt.Errorf("no response received")
+		// log.Debug().Msgf("Error: %v", err)
+		return nil, nil, nil, err
+	}
+
+	// log.Debug().Msgf("Returning response from: %s with status code: %d and body size: %d", resp.Request.URL, resp.StatusCode, len(resp.Body))
+	log.Debug().
+		Str("domain", fmt.Sprintf("%s", resp.Request.URL)).
+		Str("status", fmt.Sprintf("%d", resp.StatusCode)).
+		Str("size", fmt.Sprintf("%d", len(resp.Body))).
+		Msg("Returning response from with")
+	return resp, status, sizes, nil
 }

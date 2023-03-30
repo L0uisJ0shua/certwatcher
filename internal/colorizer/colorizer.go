@@ -1,9 +1,10 @@
 package colorizer
 
 import (
+    "strings"
+
     "github.com/logrusorgru/aurora"
     "github.com/projectdiscovery/nuclei/v2/pkg/model/types/severity"
-    "strings"
 )
 
 const (
@@ -39,7 +40,7 @@ func GetSeverityColor(templateSeverity interface{}) string {
     var method func(arg interface{}) aurora.Value
     switch severityValue {
     case severity.Info:
-        method = aurora.Blue
+        method = aurora.BrightBlue
     case severity.Low:
         method = aurora.Green
     case severity.Medium:

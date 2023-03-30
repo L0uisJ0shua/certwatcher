@@ -14,15 +14,17 @@ import (
 )
 
 type Models struct {
-    ID       string        `yaml:"id"`
-    Keywords []string      `yaml:"keywords"`
-    Matchers []string      `yaml:"matchers"`
-    TLDs     []string      `yaml:"tlds"`
-    Severity string        `yaml:"severity"`
-    Requests types.Request `yaml:"requests"`
-    Paths    []string
-    Status   []int `yaml:"response"`
-    Sizes    []int `yaml:"sizes"`
+    ID        string
+    Keywords  []string
+    TLDs      []string
+    Requests  types.Request
+    Paths     []string
+    Severity  string
+    Status    []int
+    Sizes     []int
+    Matchers  []string
+    Tags      []string
+    Condition string
 }
 
 type MatcherInfo struct {
@@ -114,6 +116,7 @@ func Templates(options types.Options) ([]Models, []string, []string) {
         for _, matcher := range template.Info.Matchers {
             Matcher = append(Matcher, matcher.Pattern) // Adicionar o path à slice geral
         }
+
         // Converter os valores de tlds em []string
         var tldsSlice []string
         for _, tld := range template.Info.Tlds {
@@ -146,17 +149,18 @@ func Templates(options types.Options) ([]Models, []string, []string) {
             matchers[i] = matcher.Pattern
         }
 
-        // Adicionar informações do template ao slice de Models
         Templates = append(Templates, Models{
-            ID:       template.Info.ID,
-            Keywords: template.Info.Keywords,
-            TLDs:     tldsSlice,
-            Requests: template.Info.Requests,
-            Paths:    Path,
-            Severity: template.Info.Severity,
-            Status:   statusCodes,
-            Sizes:    SizeCodes,
-            Matchers: matchers,
+            ID:        template.Info.ID,
+            Keywords:  template.Info.Keywords,
+            TLDs:      tldsSlice,
+            Requests:  template.Info.Requests,
+            Paths:     Path,
+            Severity:  template.Info.Severity,
+            Tags:      template.Info.Classification.Tags,
+            Status:    statusCodes,
+            Sizes:     SizeCodes,
+            Matchers:  matchers,
+            Condition: template.Info.Condition,
         })
 
         // Marcar o template como processado

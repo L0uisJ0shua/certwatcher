@@ -4,7 +4,7 @@ import (
     "strings"
 )
 
-func Duplicates(strings []string) []string {
+func Unique(strings []string) []string {
     // Create a map to store unique strings
     uniqueStrings := make(map[string]bool)
 
@@ -29,7 +29,17 @@ func Author(name string) string {
     names := strings.Split(name, " ")
     var Author []string
     for _, name := range names {
-        Author = append(Author,  strings.ToLower(name))
+        Author = append(Author, strings.ToLower(name))
     }
     return "@" + strings.Join(Author, "")
+}
+
+func RemoveWildcardPrefix(url string) string {
+    // Verificando se a URL começa com '*' e se possui pelo menos dois caracteres
+    if strings.HasPrefix(url, "*.") && len(url) > 1 {
+        // Retornando a URL a partir do segundo caractere
+        return url[2:]
+    }
+    // Caso não tenha prefixo de wildcard, retornamos a URL original
+    return url
 }

@@ -18,7 +18,7 @@ type Info struct {
         Tags    []string `yaml:"tags"`
     } `yaml:"classification"`
     // Condition specifies the condition for the matchers.
-    Condition string `yaml:"matchers-condition"`
+    Condition string `yaml:"matcher-condition"`
     // Keywords specifies the keywords to match.
     Keywords []string `yaml:"keywords"`
     // Matchers is an array of matcher objects, each containing a pattern, type and description.

@@ -25,7 +25,7 @@
 
 
 <p align="justify">
-CertWatcher is a tool for capture and tracking certificate transparency logs, using YAML templates. The tool helps to detect and analyze phishing websites and regular expression patterns, and is designed to make it easy to use for security professionals and researchers.
+CertWatcher is a tool for capturing and tracking certificate transparency logs, using YAML templates. The tool helps detect and analyze websites using regular expression patterns and is designed for ease of use by security professionals and researchers.
 </p>
 <br>
 <p align="center">
@@ -34,7 +34,7 @@ CertWatcher is a tool for capture and tracking certificate transparency logs, us
 
 </p>
 <p align="justify">
-Certwatcher continuously monitors the certificate data stream and checks for suspicious patterns or malicious activity. Certwatcher can also be customized to detect specific phishing patterns and combat the spread of malicious websites.
+Certwatcher continuously monitors the certificate data stream and checks for patterns or malicious activity. Certwatcher can also be customized to detect specific phishing, exposed tokens, secret api key patterns using regular expressions defined by YAML templates.
 <p>
   
 ##  Get Started

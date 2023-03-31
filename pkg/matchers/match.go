@@ -1,84 +1,121 @@
 package matchers
 
 import (
-	"fmt"
+	"errors"
 	"regexp"
 	"strings"
+
+	"github.com/weppos/publicsuffix-go/publicsuffix"
 )
 
-// MatchStatusCode verifica se um código de status HTTP corresponde a um ou mais códigos de status HTTP especificados no objeto Matcher.
-func (m *Matcher) MatchStatusCodes(respStatusCodes, definedStatusCodes []int) ([]int, bool) {
-	var matchedStatusCodes []int
-	for _, definedStatus := range definedStatusCodes {
-		for _, respStatus := range respStatusCodes {
-			if respStatus == definedStatus {
-				matchedStatusCodes = append(matchedStatusCodes, respStatus)
-			}
-		}
+func Parse(domain string) (*publicsuffix.DomainName, error) {
+	parsed, err := publicsuffix.Parse(domain)
+	if err != nil {
+		return nil, err
 	}
-	if len(matchedStatusCodes) > 0 {
-		return matchedStatusCodes, true
-	} else {
-		return respStatusCodes, false
-	}
+	return parsed, nil
 }
 
-// MatchSizes verifica se um tamanho corresponde a um ou mais tamanhos especificados no objeto Matcher.
-func (m *Matcher) MatchSizes(respSize int, definedSizes []int) ([]int, bool) {
-	var matchedSizes []int
-	for _, definedSize := range definedSizes {
-		if respSize == definedSize {
-			matchedSizes = append(matchedSizes, respSize)
+// MatchStatusCode matches a status code check against a response
+func (matcher *Matcher) MatchStatusCode(statusCode int) (bool, error) {
+	// Iterate over all the status codes accepted as valid
+	for _, status := range matcher.Status {
+		// Continue if the status codes don't match
+		if statusCode != status {
+			continue
 		}
+		// Return on the first match.
+		return true, nil
 	}
-	if len(matchedSizes) > 0 {
-		return matchedSizes, true
-	}
-	// log.Debug().Msgf("Response Size Not Match %d", respSize)
-	return matchedSizes, false
+	return false, errors.New("No matching status code found in the HTTP request")
 }
 
-// MatchTLD verifica se um tld existe no dominio e retorna true
-func (matcher *Matcher) MatchTLD(domain string, tlds []string) (string, bool) {
-	for _, tld := range tlds {
+// MatchSize matches a size check against a response
+func (matcher *Matcher) MatchSize(length int) (bool, error) {
+	// Iterate over all the sizes accepted as valid
+	for _, size := range matcher.Size {
+		// Continue if the size doesn't match
+		if length != size {
+			continue
+		}
+		// Return on the first match.
+		return true, nil
+	}
+	return false, errors.New("No matching body size found in the HTTP request.")
+}
 
-		re, err := regexp.Compile(tld)
+func (matcher *Matcher) MatchTLD(domain string) (bool, error) {
+	parsed, err := Parse(domain)
+	if err != nil {
+		return false, errors.New("could not parse domain")
+	}
+
+	// Iterate over all the TLDs accepted as valid
+	for _, valid := range matcher.TLDs {
+		// If the valid TLD is a regex, check if it matches the parsed TLD
+		re, err := regexp.Compile(valid)
 		if err != nil {
-			// Erro de compilação da expressão regular
-			return fmt.Sprintf("%s", tld), false
+			return false, errors.New("invalid regex pattern")
 		}
-
-		if re.MatchString(domain) {
-			// Retorna o TLD que deu match
-			tld := re.FindString(domain)
-			// Remove o ponto do início do TLD
-			tld = strings.TrimPrefix(tld, ".")
-			return tld, true
+		if re.MatchString(parsed.TLD) {
+			return true, nil
 		}
 	}
-	// log.Debug().Msgf("Top Level Domains (%s) Not Match", domain)
-	return "", false
+
+	return false, nil
 }
 
-// MatchKeywords verifica se um determinado domínio corresponde a um ou mais palavras-chave especificadas no objeto Matcher.
-// Retorna as palavras-chave que correspondem e um valor booleano indicando se houve correspondência ou não.
-func (matcher *Matcher) MatchKeywords(domain string, keywords []string) ([]string, bool) {
-	// Prepara as palavras-chave, removendo espaços em branco e transformando em minúsculas
-	for i, keyword := range keywords {
-		keywords[i] = strings.ToLower(strings.TrimSpace(keyword))
-	}
-
-	// Prepara o domínio, transformando em minúsculas
-	domain = strings.ToLower(domain)
+func (matcher *Matcher) MatchKeywords(domain string) ([]string, error) {
+	// Remove all characters except letters, digits, hyphens and dots from the domain
+	reg := regexp.MustCompile(`[^a-zA-Z0-9.-]`)
+	domain = reg.ReplaceAllString(domain, "")
 
 	var matches []string
-	for _, keyword := range keywords {
-		// Verifica se a palavra-chave está contida no domínio
-		if strings.Contains(domain, keyword) {
+
+	for _, keyword := range matcher.Keywords {
+		// Remove all characters except letters and digits from the keyword
+		reg := regexp.MustCompile(`[^a-zA-Z0-9]`)
+		keyword = reg.ReplaceAllString(keyword, "")
+
+		if strings.Contains(strings.ToLower(domain), strings.ToLower(keyword)) {
 			matches = append(matches, keyword)
 			continue
 		}
 	}
 
-	return matches, true
+	if len(matches) > 0 {
+		return matches, nil
+	}
+
+	return nil, errors.New("no matching keywords found")
+}
+
+func (matcher *Matcher) MatchRegex(response string) (bool, []string) {
+	matchers := make([]string, 0)
+
+	for _, regex := range matcher.Matchers {
+		matched, err := regexp.MatchString(regex, response)
+		if err != nil {
+			return false, []string{}
+		}
+
+		switch Condition := ConditionType(matcher.Condition); Condition {
+		case ORCondition:
+			if matched {
+				match := regexp.MustCompile(regex).FindAllString(response, -1)
+				matchers = append(matchers, match...)
+				if !matcher.MatchAll {
+					return true, matchers
+				}
+			}
+		case ANDCondition:
+			if !matched {
+				return false, []string{}
+			}
+			match := regexp.MustCompile(regex).FindAllString(response, -1)
+			matchers = append(matchers, match...)
+		}
+	}
+
+	return len(matchers) > 0, matchers
 }

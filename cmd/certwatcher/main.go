@@ -15,7 +15,7 @@ import (
 
 func main() {
 
-	// Analisar as opções da linha de comando
+	// Faz o parse das opções da linha de comando CLI
 	options := runner.ParseOptions()
 
 	// Chamar a função que executa os templates aqui, usando as opções definidas em "options"

@@ -11,9 +11,10 @@ type Message struct {
 }
 
 type Protocols struct {
-    DNS string
-    SSL string
-    Log string
+    DNS  string
+    SSL  string
+    Log  string
+    HTTP string
 }
 
 type Options struct {

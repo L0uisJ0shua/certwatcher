@@ -3,25 +3,24 @@ package templates
 import (
 	"os"
 	"path/filepath"
-	log "github.com/projectdiscovery/gologger"
 	"sort"
 	"strings"
+
+	log "github.com/projectdiscovery/gologger"
 )
 
 func IsDir(path string) bool {
-    fi, err := os.Stat(path)
-    if err != nil {
-        return false
-    }
-    return fi.Mode().IsDir()
+	fi, err := os.Stat(path)
+	if err != nil {
+		return false
+	}
+	return fi.Mode().IsDir()
 }
 
 // Directory é o diretório padrão para buscar os arquivos de template
 var Directory = filepath.Join(os.Getenv("HOME"), "certwatcher-templates", ".")
 
 // FindTemplateByID busca os templates com os IDs especificados em todas as pastas do diretório padrão e em quaisquer pastas adicionais especificadas, retornando os caminhos dos arquivos YAML correspondentes.
-// Find busca as templates com os IDs especificados no diretório padrão e em quaisquer pastas adicionais especificadas,
-// ou no diretório especificado caso seja passado, retornando os caminhos dos arquivos YAML correspondentes.
 func Find(templateID []string, additionalDirs ...string) ([]string, error) {
 	// Combine the default template directory with any additional directories to be searched
 	dirs := append([]string{Directory}, additionalDirs...)

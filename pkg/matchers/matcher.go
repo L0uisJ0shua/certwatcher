@@ -2,29 +2,39 @@ package matchers
 
 import (
     "fmt"
-    "net/url"
-    "pkg/core"
-    "pkg/http"
-    "pkg/types"
-    "regexp"
     "strings"
     "time"
 
+    "pkg/utils"
+
+    "pkg/http"
+    "pkg/templates"
+
     log "github.com/projectdiscovery/gologger"
     "github.com/projectdiscovery/nuclei/v2/pkg/model/types/severity"
-    "golang.org/x/net/publicsuffix"
+    "github.com/weppos/publicsuffix-go/publicsuffix"
 )
 
 type Matcher struct {
+    ID   string   `yaml:"id,omitempty" json:"part,omitempty" jsonschema:"title=Template identify,description=Matches when a template successfully matches a regex"`
+    Tags []string `yaml:"tags,omitempty" json:"tags,omitempty" jsonschema:"title=Tags templates,description=Tags corresponding to the loaded template"`
+
+    Severity string `yaml:"severity,omitempty" json:"part,omitempty" jsonschema:"title=seveirty loaded template,description=Severity of the loaded template"`
+    //   Part is the part of the request response to match data from.
+    //   Each protocol exposes a lot of different parts which are well
+    //   documented in docs for each request type.
+    // examples:
+    //   - value: "\"body\""
+    //   - value: "\"raw\""
+    Type string `yaml:"type,omitempty" json:"part,omitempty" jsonschema:"title=Match Types,description=Match type body or header"`
     // description: |
     //   Keywords Matcher Contains in Domain Stream
     // values:
     //   - "amazon"
     //   - "google"
     Keywords []string `yaml:"keywords,omitempty" json:"keywords,omitempty" jsonschema:"title=Keywords to match,description=Keywords to match for the domain"`
-    Matchers []string `yaml:"matchers,omitempty" json:"keywords,omitempty" jsonschema:"title=Matchers to match,description=Matchers to match for the body"`
     // description: |
-    //   Tld Matcher Contains in Domain Stream
+    //   Matchers Contains in Body Requests
     // values:
     //   - "com"
     //   - "io"
@@ -57,7 +67,101 @@ type Matcher struct {
     //   - name: Matching APP variables found in response body
     //     value: >
     //       []string{`(?m)^DB_(HOST|PASSWORD|DATABASE)`}
-    Pattern []string `yaml:"pattern,omitempty" json:"regex,omitempty" jsonschema:"title=regex to match in response,description=Regex contains regex patterns required to be present in the response part"`
+    Matchers []string `yaml:"matchers,omitempty" json:"matchers,omitempty" jsonschema:"title=matchers to match in response,description=Matchers contains regex patterns required to be present in the response part"`
+    // description: |
+    //   MatchAll enables matching for all matcher values. Default is false.
+    // values:
+    //   - false
+    //   - true
+    MatchAll bool `yaml:"match,omitempty" json:"match,omitempty" jsonschema:"title=match all values,description=match all matcher values ignoring condition"`
+    // description: |
+    //   Requests to send over domains matching. Default is "/".
+    // values:
+    //   - "/"
+    //   - "/.git/config"
+    condition ConditionType
+    Requests  Request `yaml:"requests"`
+}
+
+type Request struct {
+    Method      string   `yaml:"method"`
+    Path        []string `yaml:"path"`
+    Description string   `yaml:"description,omitempty"`
+    Condition   string   `yaml:"condition,omitempty"`
+}
+
+type Certificates struct {
+    Domain         string
+    AllDomains     []string
+    Issuer         string
+    Source         string
+    SubjectAltName string
+}
+
+type Domain struct {
+    TLD       string
+    Domain    string
+    Subdomain string
+}
+
+type ConditionType string
+
+const (
+    ANDCondition ConditionType = "and"
+    ORCondition  ConditionType = "or"
+)
+
+// ConditionTypes is a table for conversion of condition type from string.
+var ConditionTypes = map[string]ConditionType{
+    "and": ANDCondition,
+    "or":  ORCondition,
+}
+
+func (c *Certificates) Url() (string, error) {
+    domain, err := publicsuffix.Domain(c.Domain)
+    if err != nil {
+        return "", err
+    }
+    c.Domain = domain
+
+    return c.Domain, nil
+}
+
+func (c *Certificates) Parse() (*Domain, error) {
+    domain, err := publicsuffix.Parse(c.Domain)
+    if err != nil {
+        return nil, err
+    }
+
+    return &Domain{
+        TLD:       domain.TLD,
+        Domain:    domain.SLD,
+        Subdomain: domain.TRD,
+    }, nil
+}
+
+type Result struct {
+    Size     int
+    Status   int
+    Keywords []string
+    TLDs     bool
+    Regexes  []string
+    Valid    bool
+}
+
+func (r *Result) Validate() *Result {
+
+    valid := true
+
+    // Retorna um novo Result com o valor booleano da validação e os valores correspondentes
+    return &Result{
+        Size:     r.Size,
+        Status:   r.Status,
+        Keywords: r.Keywords,
+        TLDs:     r.TLDs,
+        Regexes:  r.Regexes,
+        Valid:    valid,
+    }
 }
 
 func Severity(level string) (severity.Severity, error) {
@@ -75,127 +179,137 @@ func Severity(level string) (severity.Severity, error) {
     }
 }
 
-func New(keywords, tlds, matchers []string) *Matcher {
-    return &Matcher{
-        Keywords: keywords,
-        TLDs:     tlds,
-        Matchers: matchers,
-    }
-}
+func (m *Matcher) Match(certs Certificates, count int) {
+    // Aqui podemos fazer a lógica de match do certificado com base nos critérios do Matcher
+    // Neste exemplo, apenas imprimimos alguns campos do certificado e os critérios de match
 
-func parseDomain(domain string) (string, error) {
-    u, err := url.Parse(fmt.Sprintf("https://%s", domain))
+    baseURL, err := certs.Url()
+
     if err != nil {
-        return "", err
+        return
     }
-    domain, err = publicsuffix.EffectiveTLDPlusOne(u.Hostname())
-    if err != nil {
-        return "", err
-    }
-    return domain, nil
-}
 
-func (m *Matcher) Match(certificates types.Message, certs int, statusCode []int, sizesCodes []int, requests types.Request, level string, templateID string) {
+    for _, domains := range certs.AllDomains {
 
-    go func() {
+        result := &Result{}
+        url := utils.RemoveWildcardPrefix(domains)
 
-        // Inicializa a variável patterns com o valor 0.
-        patterns := 0
+        result.Keywords, _ = m.MatchKeywords(url)
+        result.TLDs, _ = m.MatchTLD(url)
 
-        domain, err := parseDomain(certificates.Domain)
+        req := &http.Request{
+            Method: m.Requests.Method,
+            Paths:  m.Requests.Path,
+        }
+
+        url = fmt.Sprintf("https://%s", url)
+        resp, stats, sizes, err := http.Requests(url, req)
+
         if err != nil {
-            log.Debug().Msg("Error parsing domain")
+            // log.Warning().Msgf("Error making HTTP request: %v", err)
             return
         }
 
-        // Monta a URL para a requisição.
-        url := fmt.Sprintf("https://%s", domain)
-
-        level, _ := Severity(level)
-
-        var catcher string
-        // Verifica se a resposta já está em cache.
-        params := &http.Request{
-            Method: requests.Method,
-            Paths:  requests.Path,
-        }
-
-        // Se a resposta não estiver em cache, faz a requisição HTTP.
-        doc, responseStatusCode, responseSizesCode, err := http.Requests(url, params)
-
-        if err != nil {
-            return
-        }
-
-        status, matchStatusCode := m.MatchStatusCodes(responseStatusCode, statusCode)
-
-        // Verifica se há correspondência com os matchers utilizando expressões regulares.
-        for _, matcher := range m.Matchers {
-
-            re, err := regexp.Compile(matcher)
-            if err != nil {
-                break
-            }
-
-            if re.MatchString(doc.Text()) {
-                catcher = matcher
-                break
+        for _, status := range stats {
+            if match, err := m.MatchStatusCode(status); match {
+                result.Status = status
+                log.Debug().
+                    Str("domain", url).
+                    Str("status", fmt.Sprintf("%d", status)).
+                    Msg("Matching status code found in the HTTP request")
+            } else if err != nil {
+                log.Warning().Msgf("%v", err)
             }
         }
 
-        // Verifica se o domínio do objeto certificates termina com algum TLD.
-        tld, matchTLD := m.MatchTLD(domain, m.TLDs)
-
-        if matchTLD {
-            patterns++
+        for _, size := range sizes {
+            if match, err := m.MatchSize(size); match {
+                result.Size = size
+                log.Debug().
+                    Str("domain", url).
+                    Str("size", fmt.Sprintf("%d", size)).
+                    Msg("Matching body size found in the HTTP request.")
+            } else if err != nil {
+                log.Warning().Msgf("%v", err)
+            }
         }
 
-        keywords, matchKeyword := m.MatchKeywords(domain, m.Keywords)
+        matched, matches := m.MatchRegex(string(resp.Body))
 
-        if matchKeyword {
-            patterns++
+        if matched {
+            result.Regexes = matches
+            log.Debug().
+                Str("domain", url).
+                Str("matches", fmt.Sprintf("%s", matches)).
+                Msg("Matching regex found in the HTTP response.")
         }
 
-        keyword := strings.Join(keywords, ", ")
+        // Chama a função Validate para validar o objeto Result
+        validate := result.Validate()
 
-        var levels severity.Severity
-        switch {
-        case patterns >= 2:
-            levels = severity.High
-        case patterns >= 1:
-            levels = severity.Medium
-        default:
-            levels = severity.Low
+        if !validate.Valid {
+            log.Error().Msgf("Domain %s is invalid\n\n", url)
+            continue
         }
 
-        if matchStatusCode {
-            log.Debug().Str("requests", fmt.Sprintf("%v", domain)).Str("status", fmt.Sprintf("%d", status)).Str("sizes", fmt.Sprintf("%d", responseSizesCode)).Msg("HTTP Request Returned Match Size Code")
-        }
+        level, _ := Severity(m.Severity)
+
+        var (
+            keywords = utils.Unique(validate.Keywords)
+            tlds     = validate.TLDs
+            regex    = utils.Unique(validate.Regexes)
+        )
 
         switch {
-        case len(keyword) > 0:
-            log.Info().Msgf("Suspicious activity found at %s\n", time.Now().Format("01-02-2006 15:04:05"))
-            log.Info().Msgf("Number of certificates issued: %d\n", certs)
-            log.Info().Msgf("Domain Keyword Match (%s)", keyword)
-            if len(catcher) > 0 {
-                log.Info().Msgf("Matching regular expression found: %s", catcher)
-                core.LogCertificates(certificates, keyword, severity.High, m.TLDs, m.Matchers)
-                return
+        case len(keywords) > 0:
+            log.Info().Msgf("Domain %s Matches Keywords (%s)\n\n", url, strings.Join(keywords, ","))
+        case tlds:
+            log.Info().Msgf("Domain %s Matched TLDs (Top-Level Domains)\n\n", url)
+        case len(regex) > 0:
+
+            log.Info().Msgf("Pattern successfully at %s", time.Now().Format("01-02-2006 15:04:05"))
+            log.Info().Msgf("Number of certificates issued: %d", count)
+
+            template := templates.LogEntry{
+                ID:       m.ID,
+                Name:     templates.Protocolos.HTTP,
+                Severity: level,
+                Tags:     utils.Unique(m.Tags),
+                Domain:   url,
+                Options:  []string{"tags"},
+                // Adicionar outras entradas de informação de modelo aqui...
             }
-            if matchTLD {
-                log.Info().Msgf("Domain matched TLDs (Top-Level Domains) %s", tld)
+
+            certLog := []templates.LogEntry{
+                {
+                    Name:    "ssl-dns-names",
+                    Types:   templates.Protocolos.DNS,
+                    Domain:  baseURL,
+                    Message: strings.Join(certs.AllDomains, ", "),
+                },
+
+                {
+                    Name:    "ssl-issuer",
+                    Types:   templates.Protocolos.SSL,
+                    Domain:  baseURL,
+                    Message: certs.Issuer,
+                },
+                {
+                    Name:    "source",
+                    Types:   templates.Protocolos.Log,
+                    Domain:  baseURL,
+                    Message: certs.Source,
+                },
             }
-            core.LogCertificates(certificates, keyword, levels, m.TLDs, m.Matchers)
+
+            templates.Log(template)
+            templates.CertsLog(certLog)
+            // Add a new line after the spinner to avoid overlapping with the next line of output
+            fmt.Println()
         default:
-            if len(catcher) > 0 {
-                log.Info().Msgf("Pattern successfully found %s\n", time.Now().Format("01-02-2006 15:04:05"))
-                log.Info().Msgf("Number of certificates issued: %d\n", certs)
-                log.Info().Msgf("Matching regular expression found: %s\n", catcher)
-                core.Log(templateID, "http", level, domain, strings.Split(catcher, " "))
-                core.LogCertificates(certificates, keyword, level, m.TLDs, m.Matchers)
-                return
+            if !validate.Valid {
+                log.Error().Msgf("Domain %s is invalid\n\n", url)
             }
         }
-
-    }()
+    }
 }

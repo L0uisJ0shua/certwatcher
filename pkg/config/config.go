@@ -13,31 +13,30 @@ import (
 var (
 	// Version represents the current version of the application
 	Version = "0.1.2"
-
 	// Name represents the name of the application
 	Name = "certwatcher"
 	// The `Notice` variable represents a notice about the current state of the application.
 	Notice = "\n\nThis project is in active development not ready for production. \nPlease use a proxy to stay safe. Use at your own risk."
 )
 
-// Config is the configuration struct
-type Config struct {
-	Log    LogConfig    `mapstructure:"log"`
-	Stream StreamConfig `mapstructure:"stream"`
-	Match  []string     `mapstructure:"matchers"`
-	Tmpl   []string     `mapstructure:"templates"`
-}
-
-// LogConfig is the configuration struct for logging
-type LogConfig struct {
-	File  string `mapstructure:"file"`
-	Level string `mapstructure:"level"`
+type OpenAIConfig struct {
+	APIKey string `yaml:"apikey"`
 }
 
 // StreamConfig is the configuration struct for stream
 type StreamConfig struct {
 	Certstream CertstreamConfig `mapstructure:"certstream"`
-	Domains    []string         `mapstructure:"domains"`
+	// List of domains to filter
+	// Filters in the interaction with the issued certificates.
+	// examples:
+	//   - value: >
+	//       []string{"www.example.com", "*.test.com"}
+	Domains []string `mapstructure:"domains"`
+	// This function is true the domains will be ignored
+	// Default ignore is false
+	// examples:
+	// - ignore: true
+	Ignore bool `mapstructure:"ignore"`
 }
 
 // CertstreamConfig is the configuration struct for certstream
@@ -45,10 +44,29 @@ type CertstreamConfig struct {
 	Mode string `mapstructure:"mode"`
 }
 
+// LogConfig is the configuration struct for logging
+type LogConfig struct {
+	// certwatcher logs file
+	File string `mapstructure:"file"`
+	// Debug Level set default to Info
+	Level string `mapstructure:"level"`
+}
+
 type AppConfig struct {
+	// Version
 	Version string `json:"version"`
-	Name    string `json:"name"`
-	Notice  string `json:"notice"`
+	// Name
+	Name string `json:"name"`
+	// Notice Message.
+	Notice string `json:"notice"`
+}
+
+// Config is the configuration struct
+type Config struct {
+	Log       LogConfig    `mapstructure:"log"`
+	Stream    StreamConfig `mapstructure:"stream"`
+	OpenAI    OpenAIConfig `mapstructure:"openai"`
+	AppConfig AppConfig    `mapstructure:"appconfig"`
 }
 
 // LoadVersion loads the version from a JSON file in the same directory as the executable
@@ -74,7 +92,7 @@ func LoadVersion() (AppConfig, error) {
 	return appConfig, nil
 }
 
-// GetConfigDir returns the nuclei configuration directory
+// GetConfigDir returns the configuration directory
 func GetConfigDir() (string, error) {
 	var (
 		home string

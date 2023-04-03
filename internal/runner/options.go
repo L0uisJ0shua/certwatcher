@@ -1,6 +1,7 @@
 package runner
 
 import (
+	"fmt"
 	"os"
 	"strings"
 
@@ -13,6 +14,7 @@ import (
 
 type Options struct {
 	Templates      goflags.StringSlice
+	Generate       goflags.StringSlice
 	Validate       bool
 	Output         string
 	Json           bool
@@ -38,6 +40,7 @@ func ParseOptions() *Options {
 	flagSet.CreateGroup("templates", "Templates",
 		flagSet.StringSliceVarP(&options.Templates, "template", "t", nil, "List of template or template directory to run (comma-separated, file)", goflags.FileCommaSeparatedStringSliceOptions),
 		flagSet.BoolVar(&options.Validate, "validate", false, "Validate the passed templates to certwatcher"),
+		flagSet.StringSliceVarP(&options.Generate, "generate", "g", nil, "Generate a new template with the provided name Powered by OpenAI (input: stdin,string,file)", goflags.CommaSeparatedStringSliceOptions),
 	)
 
 	// Browser configs
@@ -58,12 +61,21 @@ func ParseOptions() *Options {
 		flagSet.BoolVarP(&options.Json, "json", "j", false, "write output in json(line) format"),
 	)
 
+	// Parse flagSet
 	if err := flagSet.Parse(); err != nil {
 		log.Fatal().Msgf("%s\n", err)
 	}
 
+	// Loaded Configuration File
+	// This is default configuration
+	c, err := config.LoadConfig()
+
+	if err != nil {
+		log.Fatal().Msgf("Error loading configuration: %s", err)
+	}
+
 	// Default Configuration Output
-	options.configureOutput()
+	options.SetLogLevel(&c)
 
 	// If the user desires verbose output, show verbose output
 	if options.Version {
@@ -71,35 +83,24 @@ func ParseOptions() *Options {
 		os.Exit(0)
 	}
 
-	// Show the Banner
+	// Show the certwatcher banner
 	ShowBanner()
 
 	return options
 }
 
-// ConfigureOutput configures the output on the screen
-func (options *Options) configureOutput() {
-	// Load the configuration file
-	config, err := config.LoadConfig()
-	if err != nil {
-		log.Fatal().Msgf("failed to load config file: %s", err.Error())
-		return
-	}
-
+// SetLogLevel sets the logging level based on the configuration
+func (options *Options) SetLogLevel(config *config.Config) {
 	// Switch based on the configuration values
 	switch strings.ToLower(config.Log.Level) {
 	case "debug":
 		log.DefaultLogger.SetMaxLevel(levels.LevelDebug)
-
 	case "verbose":
 		log.DefaultLogger.SetMaxLevel(levels.LevelVerbose)
-
 	case "warning":
 		log.DefaultLogger.SetMaxLevel(levels.LevelWarning)
-
 	case "error":
 		log.DefaultLogger.SetMaxLevel(levels.LevelError)
-
 	default:
 		if options.Debug {
 			log.DefaultLogger.SetMaxLevel(levels.LevelDebug)

@@ -218,7 +218,7 @@ func (m *Matcher) Match(certs Certificates, count int) {
                     Str("status", fmt.Sprintf("%d", status)).
                     Msg("Matching status code found in the HTTP request")
             } else if err != nil {
-                log.Warning().Msgf("%v", err)
+                log.Debug().Msgf("%v", err)
             }
         }
 
@@ -230,7 +230,7 @@ func (m *Matcher) Match(certs Certificates, count int) {
                     Str("size", fmt.Sprintf("%d", size)).
                     Msg("Matching body size found in the HTTP request.")
             } else if err != nil {
-                log.Warning().Msgf("%v", err)
+                log.Debug().Msgf("%v", err)
             }
         }
 

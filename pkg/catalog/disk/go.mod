@@ -1,11 +1,8 @@
-module pkg/certstream
+module pkg/catalog/disk
 
-go 1.19
+go 1.20
 
-require (
-	github.com/gorilla/websocket v1.5.0
-	github.com/projectdiscovery/gologger v1.1.8
-)
+require github.com/projectdiscovery/gologger v1.1.8
 
 require (
 	github.com/dsnet/compress v0.0.1 // indirect

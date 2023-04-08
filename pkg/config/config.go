@@ -1,13 +1,14 @@
 package config
 
 import (
-	"encoding/json"
+    "encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
 
 	"github.com/mitchellh/go-homedir"
 	"github.com/spf13/viper"
+	"io/ioutil"
 )
 
 var (
@@ -67,26 +68,27 @@ type Config struct {
 	Stream    StreamConfig `mapstructure:"stream"`
 	OpenAI    OpenAIConfig `mapstructure:"openai"`
 	AppConfig AppConfig    `mapstructure:"appconfig"`
+	TemplatesDirectory string `json:"nuclei-templates-directory,omitempty"`
 }
 
-// LoadVersion loads the version from a JSON file in the same directory as the executable
-func LoadVersion() (AppConfig, error) {
-	configPath, err := GetConfigDir()
+// Load Configuration JSON
+func Load() (AppConfig, error) {
+	path, err := GetConfigDir()
 	if err != nil {
 		return AppConfig{}, fmt.Errorf("failed to get path to executable: %w", err)
 	}
 
-	versionFile := filepath.Join(configPath, "version.json")
-	file, err := os.Open(versionFile)
+	config := filepath.Join(path, "config.json")
+
+	file, err := ioutil.ReadFile(config)
 	if err != nil {
-		return AppConfig{}, fmt.Errorf("failed to open version file: %w", err)
+		return AppConfig{}, fmt.Errorf("failed to read config file: %w", err)
 	}
-	defer file.Close()
 
 	var appConfig AppConfig
-
-	if err := json.NewDecoder(file).Decode(&appConfig); err != nil {
-		return AppConfig{}, fmt.Errorf("failed to decode version file: %w", err)
+	err = json.Unmarshal(file, &appConfig)
+	if err != nil {
+		return AppConfig{}, fmt.Errorf("failed to decode config file: %w", err)
 	}
 
 	return appConfig, nil

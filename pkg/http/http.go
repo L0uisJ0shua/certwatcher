@@ -17,7 +17,7 @@ type Request struct {
 }
 
 const (
-	Timeout = 30 * time.Second
+	Timeout = 60 * time.Second
 )
 
 var UserAgent = browser.Random()
@@ -51,7 +51,7 @@ func Requests(url string, req *Request) (*colly.Response, []int, []int, error) {
 		default:
 			r.Method = "GET"
 		}
-		// log.Debug().Msgf("Sending %s request: %s", r.Method, r.URL)
+		log.Debug().Msgf("Sending %s request: %s", r.Method, r.URL)
 	})
 
 	c.OnResponse(func(r *colly.Response) {
@@ -89,7 +89,7 @@ func Requests(url string, req *Request) (*colly.Response, []int, []int, error) {
 
 	if len(status) == 0 {
 		err := fmt.Errorf("no response received")
-		// log.Debug().Msgf("Error: %v", err)
+		log.Debug().Msgf("Error: %v", err)
 		return nil, nil, nil, err
 	}
 

@@ -7,14 +7,22 @@ import (
 	"github.com/projectdiscovery/gologger"
 )
 
-var banner = fmt.Sprintf(`
+func ShowBanner() error {
+	// Carrega as informações de configuração
+	appConfig, err := config.Load()
+	if err != nil {
+		return fmt.Errorf("failed to load config: %w", err)
+	}
+
+	banner := fmt.Sprintf(`
              _             _       _
  ___ ___ ___| |_ _ _ _ ___| |_ ___| |_ ___ ___ 
 |  _| -_|  _|  _| | | | .'|  _|  _|   | -_|  _|
 |___|___|_| |_| |_____|__,|_| |___|_|_|___|_|  
-                                              v%s%s`, config.Version, config.Notice)
+                                              v%s%s`, appConfig.Version, appConfig.Notice)
 
-func ShowBanner() {
 	gologger.Print().Msgf("%s\n\n", banner)
-	gologger.Print().Msgf("\t\t%s.io\n\n", config.Name)
+	gologger.Print().Msgf("\t\t%s.io\n\n", appConfig.Name)
+
+	return nil
 }

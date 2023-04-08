@@ -111,6 +111,15 @@ const (
     ORCondition  ConditionType = "or"
 )
 
+type Result struct {
+    Size     int
+    Status   int
+    Keywords []string
+    TLDs     bool
+    Regexes  []string
+    Valid    bool
+}
+
 // ConditionTypes is a table for conversion of condition type from string.
 var ConditionTypes = map[string]ConditionType{
     "and": ANDCondition,
@@ -138,15 +147,6 @@ func (c *Certificates) Parse() (*Domain, error) {
         Domain:    domain.SLD,
         Subdomain: domain.TRD,
     }, nil
-}
-
-type Result struct {
-    Size     int
-    Status   int
-    Keywords []string
-    TLDs     bool
-    Regexes  []string
-    Valid    bool
 }
 
 func (r *Result) Validate() *Result {
@@ -183,7 +183,7 @@ func (m *Matcher) Match(certs Certificates, count int) {
     // Aqui podemos fazer a lógica de match do certificado com base nos critérios do Matcher
     // Neste exemplo, apenas imprimimos alguns campos do certificado e os critérios de match
 
-    baseURL, err := certs.Url()
+    baseURL, err := certs.Url() // extract the domain base example -> example.com
 
     if err != nil {
         return
@@ -206,7 +206,7 @@ func (m *Matcher) Match(certs Certificates, count int) {
         resp, stats, sizes, err := http.Requests(url, req)
 
         if err != nil {
-            // log.Warning().Msgf("Error making HTTP request: %v", err)
+            log.Warning().Msgf("Error making HTTP request: %v", err)
             return
         }
 

@@ -8,13 +8,13 @@ import (
 
 func TestTemplates(t *testing.T) {
 
-	// Declara e inicializa a variável options com um struct templates.Options
+	// Declare and initialize the options variable with a templates.Options struct
 	var options = templates.Options{
-		Templates: []string{"git-metadata-exposure", "ads-malware-google", "example"}, // options.Templates[]string{} CLI Comand Line Interface
+		Templates: []string{"git-metadata-exposure", "ads-malware-google", "default"}, // options.Templates[]string{} CLI Comand Line Interface
 	}
 
-	// Chama a função Templates com as opções preenchidas com valores fictícios
-	templates, _, _ := core.Templates(options)
+	// Calls the Templates function with options filled in with dummy values C
+	templates := core.Templates(options)
 
 	for id, template := range templates {
 		t.Log(id, template.Matchers)

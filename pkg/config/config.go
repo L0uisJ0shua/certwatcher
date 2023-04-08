@@ -9,6 +9,8 @@ import (
 	"github.com/mitchellh/go-homedir"
 	"github.com/spf13/viper"
 	"io/ioutil"
+	"gopkg.in/yaml.v3"
+	log "github.com/projectdiscovery/gologger"
 )
 
 var (
@@ -47,7 +49,7 @@ type CertstreamConfig struct {
 
 // LogConfig is the configuration struct for logging
 type LogConfig struct {
-	// certwatcher logs file
+	// Certwatcher logs file
 	File string `mapstructure:"file"`
 	// Debug Level set default to Info
 	Level string `mapstructure:"level"`
@@ -67,8 +69,6 @@ type Config struct {
 	Log       LogConfig    `mapstructure:"log"`
 	Stream    StreamConfig `mapstructure:"stream"`
 	OpenAI    OpenAIConfig `mapstructure:"openai"`
-	AppConfig AppConfig    `mapstructure:"appconfig"`
-	TemplatesDirectory string `json:"nuclei-templates-directory,omitempty"`
 }
 
 // Load Configuration JSON
@@ -109,6 +109,7 @@ func GetConfigDir() (string, error) {
 
 // LoadConfig loads the configuration from a YAML file
 func LoadConfig() (Config, error) {
+
 	configPath, _ := GetConfigDir()
 	if _, err := os.Stat(configPath); os.IsNotExist(err) {
 		if err := os.MkdirAll(configPath, 0755); err != nil {
@@ -116,6 +117,8 @@ func LoadConfig() (Config, error) {
 		}
 		return Config{}, fmt.Errorf("config file not found: %w", err)
 	}
+
+	createConfigFiles()
 
 	viper.SetConfigFile(filepath.Join(configPath, "config.yaml"))
 
@@ -129,4 +132,70 @@ func LoadConfig() (Config, error) {
 	}
 
 	return config, nil
+}
+
+func createDefaultConfig() error {
+
+	defaultConfig := Config{
+		Log: LogConfig{
+			File:  "/var/log/certwatcher.log",
+			Level: "info",
+		},
+		Stream: StreamConfig{
+			Certstream: CertstreamConfig{
+				Mode: "live",
+			},
+			Domains: []string{},
+			Ignore: false,
+		},
+	}
+	// Convert the default config to YAML format
+	data, err := yaml.Marshal(defaultConfig)
+	if err != nil {
+		return err
+	}
+
+	configPath, _ := GetConfigDir()
+
+	// Write the YAML config file
+	err = ioutil.WriteFile(filepath.Join(configPath, "config.yaml"), data, 0600)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func createJSONConfig() error {
+	// Create a new Config struct
+	config := AppConfig{
+		Version: "0.1.2",
+		Name:    "certwatcher",
+		Notice:  "\n\nThis project is in active development not ready for production. \nPlease use a proxy to stay safe. Use at your own risk.",
+	}
+
+	// Convert the Config struct to JSON
+	configJSON, err := json.MarshalIndent(config, "", "    ")
+	if err != nil {
+		return err
+	}
+
+	configPath, _ := GetConfigDir()
+	// Write the JSON to the config file
+	err = ioutil.WriteFile(filepath.Join(configPath, "config.json"), configJSON, 0600)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func createConfigFiles() {
+	if err := createDefaultConfig(); err != nil {
+		log.Fatal().Msgf("Error creating default config file:", err)
+	}
+
+	if err := createJSONConfig(); err != nil {
+		log.Fatal().Msgf("Error creating JSON config file:", err)
+	}
 }

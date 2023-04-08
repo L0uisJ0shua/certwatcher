@@ -3,7 +3,7 @@ package core
 import (
     "fmt"
     "internal/colorizer"
-    template "pkg/templates"
+    "pkg/catalog/disk"
     "pkg/types"
     "pkg/utils"
     yaml "pkg/yamlreader"
@@ -25,12 +25,6 @@ type Models struct {
     Matchers  []string
     Tags      []string
     Condition string
-}
-
-type MatcherInfo struct {
-    ID       string
-    Template string
-    Pattern  string
 }
 
 var colorize func(interface{}) string
@@ -74,9 +68,14 @@ func Summary(template types.Templates, matchers []string, loadsTemplates []strin
     }
 }
 
-func Templates(options types.Options) ([]Models, []string, []string) {
+func Templates(options types.Options) []Models {
     // Encontrar os templates a serem usados
-    templates, _ := template.Find(options.Templates)
+    catalog := &disk.DiskCatalog{}
+    templates, err := catalog.Find(options.Templates)
+
+    if err != nil {
+        log.Fatal().Msgf("%s", err)
+    }
 
     // Slice para armazenar as informações de cada template
     var Templates []Models
@@ -174,5 +173,5 @@ func Templates(options types.Options) ([]Models, []string, []string) {
     Summary(template, Matcher, templates)
 
     // Retornar o slice de todas as structs preenchido com as informações de cada template e o slice com todos os paths de requests
-    return Templates, Path, Matcher
+    return Templates
 }

@@ -8,9 +8,7 @@ stream:
   domains:
     - example.com
     - www.example.com
-
-matchers:
-  - Regex
-
-templates:
-  - example
+  ignore: true
+  
+openai:
+  apikey: your_openai_api_key

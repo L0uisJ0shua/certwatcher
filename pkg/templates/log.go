@@ -26,24 +26,23 @@ type LogEntry struct {
 	Domain   string
 	Types    string
 	Message  string
-	Certs    []string
 	Options  []string
 	Tags     []string
 	Authors  []string
 }
 
+// The package also includes a Colorizer object, which is used to colorize output for the Logger function.t.
 var (
 	Colorizer         aurora.Aurora
-	SeverityColorizer func(severity.Severity) string
 )
 
 func init() {
 	Colorizer = aurora.NewAurora(true)
 }
-
+// Display templates information on load certwacher
 func TemplateInfo(id, name string, authors []string, severity severity.Severity, tags []string) {
 
-	logMsg := fmt.Sprintf("[%s] %s [%s] [%s] [%s]",
+	logMsg := fmt.Sprintf("[%s] %s %s [%s] [%s]",
 		aurora.Bold(id),
 		aurora.Bold(name),
 		aurora.Bold(Author(authors)),
@@ -52,8 +51,7 @@ func TemplateInfo(id, name string, authors []string, severity severity.Severity,
 
 	log.Info().Msgf("%s", logMsg)
 }
-
-// The package also includes a Colorizer object, which is used to colorize output for the Logger function.t.
+// Display a single log information about match template
 func Log(entry LogEntry) {
 	log.Info().Msgf("[%s] [%s] [%s] %s [%s] [%s]",
 		Colorizer.BrightGreen(entry.ID).String(),
@@ -63,6 +61,7 @@ func Log(entry LogEntry) {
 		Colorizer.BrightBlue(strings.Join(utils.Unique(entry.Options), ", ")),
 		Colorizer.BrightCyan(strings.Join(utils.Unique(entry.Tags), ", ")))
 }
+
 func CertsLog(entries []LogEntry, args ...interface{}) {
 	for _, entry := range entries {
 		logArgs := []interface{}{
@@ -90,5 +89,5 @@ func Author(authors []string) string {
 			values = append(values, k)
 		}
 	}
-	return strings.Join(values, ",")
+	return strings.Join(values, ", ")
 }

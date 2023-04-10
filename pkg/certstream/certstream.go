@@ -1,6 +1,7 @@
 package certstream
 
 import (
+	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"pkg/types"
@@ -27,11 +28,18 @@ type CertStream struct {
 // NewCertStream creates a new CertStream
 func NewCertStream() *CertStream {
 	return &CertStream{
-		URL:               "wss://certstream.calidog.io",
-		Dialer:            websocket.DefaultDialer,
-		HandshakeTimeout:  10 * time.Second,
+		URL: "wss://certstream.calidog.io",
+		Dialer: &websocket.Dialer{
+			HandshakeTimeout: 30 * time.Second,
+			ReadBufferSize:   1024,
+			WriteBufferSize:  1024,
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: true,
+			},
+		},
+		HandshakeTimeout:  30 * time.Second,
 		ReadTimeout:       60 * time.Second,
-		WriteTimeout:      10 * time.Second,
+		WriteTimeout:      30 * time.Second,
 		PingPeriod:        20 * time.Second,
 		PongWait:          60 * time.Second,
 		ReconnectDur:      time.Second,
@@ -41,12 +49,23 @@ func NewCertStream() *CertStream {
 }
 
 // GetCertificates retrieves a stream of new certificates from the CertStream
-func (c *CertStream) GetCertificates() chan *types.CertStreamEvent {
-	certificates := make(chan *types.CertStreamEvent)
+// limitPerMin defines the maximum number of certificates that can be received per minute
+func (c *CertStream) GetCertificates(limitPerMin int) chan *types.CertStreamEvent {
+	certificates := make(chan *types.CertStreamEvent, limitPerMin)
 	go func() {
 		defer close(certificates)
 
+		ticker := time.NewTicker(time.Minute)
+		defer ticker.Stop()
+
+		count := 0
+
 		for {
+			if count >= limitPerMin {
+				<-ticker.C
+				count = 0
+			}
+
 			conn, err := c.dialWithTimeout()
 			if err != nil {
 				log.Warning().Msgf("Failed to dial CertStream: %v", err)
@@ -103,8 +122,9 @@ func (c *CertStream) GetCertificates() chan *types.CertStreamEvent {
 
 				select {
 				case certificates <- &event:
+					count++
 				default:
-					log.Warning().Msgf("Failed to send CertStream event to channel: channel is full")
+					// log.Warning().Msgf("Failed to send CertStream event to channel: channel is full")
 				}
 			}
 

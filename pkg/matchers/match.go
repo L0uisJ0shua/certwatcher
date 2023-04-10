@@ -90,13 +90,13 @@ func (matcher *Matcher) MatchKeywords(domain string) ([]string, error) {
 	return nil, errors.New("no matching keywords found")
 }
 
-func (matcher *Matcher) MatchRegex(response string) (bool, []string) {
+func (matcher *Matcher) MatchRegex(response string) (bool, []string, error) {
 	matchers := make([]string, 0)
 
 	for _, regex := range matcher.Matchers {
 		matched, err := regexp.MatchString(regex, response)
 		if err != nil {
-			return false, []string{}
+			return false, []string{}, nil
 		}
 
 		switch Condition := ConditionType(matcher.Condition); Condition {
@@ -105,17 +105,17 @@ func (matcher *Matcher) MatchRegex(response string) (bool, []string) {
 				match := regexp.MustCompile(regex).FindAllString(response, -1)
 				matchers = append(matchers, match...)
 				if !matcher.MatchAll {
-					return true, matchers
+					return true, matchers, nil
 				}
 			}
 		case ANDCondition:
 			if !matched {
-				return false, []string{}
+				return false, []string{}, errors.New("no matching regex found")
 			}
 			match := regexp.MustCompile(regex).FindAllString(response, -1)
 			matchers = append(matchers, match...)
 		}
 	}
 
-	return len(matchers) > 0, matchers
+	return len(matchers) > 0, matchers, errors.New("no matching regex found")
 }

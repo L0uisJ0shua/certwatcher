@@ -16,10 +16,6 @@ type Request struct {
 	Condition string   `yaml:"condition,omitempty" json:"condition,omitempty" jsonschema:"title=Condition of response to match,description=String that specifies a condition to match against the response"`
 }
 
-const (
-	Timeout = 60 * time.Second
-)
-
 var UserAgent = browser.Random()
 
 func Requests(url string, req *Request) (*colly.Response, []int, []int, error) {
@@ -33,10 +29,10 @@ func Requests(url string, req *Request) (*colly.Response, []int, []int, error) {
 	)
 
 	c := colly.NewCollector(
-		colly.Async(true),
 		colly.DisallowedDomains("example.com"),
 	)
 
+	Timeout := 60 * time.Second
 	c.SetRequestTimeout(Timeout)
 
 	// Set Random Fake User Agent
@@ -66,9 +62,9 @@ func Requests(url string, req *Request) (*colly.Response, []int, []int, error) {
 
 	if len(req.Paths) == 0 {
 		req.Paths = []string{"/"}
-		log.Debug().
-			Str("path", fmt.Sprintf("%s", req.Paths[0])).
-			Msg("Request paths not provided, using default path")
+		// log.Debug().
+		// 	Str("path", fmt.Sprintf("%s", req.Paths[0])).
+		// 	Msg("Request paths not provided, using default path")
 	}
 
 	for _, path := range req.Paths {
@@ -89,7 +85,6 @@ func Requests(url string, req *Request) (*colly.Response, []int, []int, error) {
 
 	if len(status) == 0 {
 		err := fmt.Errorf("no response received")
-		log.Debug().Msgf("Error: %v", err)
 		return nil, nil, nil, err
 	}
 

@@ -206,43 +206,42 @@ func (m *Matcher) Match(certs Certificates, count int) {
         resp, stats, sizes, err := http.Requests(url, req)
 
         if err != nil {
-            log.Warning().Msgf("Error making HTTP request: %v", err)
+            // log.Warning().Msgf("Error making HTTP request: %v", err)
             return
         }
 
         for _, status := range stats {
-            if match, err := m.MatchStatusCode(status); match {
+            if match, _ := m.MatchStatusCode(status); match {
                 result.Status = status
-                log.Debug().
-                    Str("domain", url).
-                    Str("status", fmt.Sprintf("%d", status)).
-                    Msg("Matching status code found in the HTTP request")
-            } else if err != nil {
-                log.Debug().Msgf("%v", err)
+                // log.Debug().
+                //     Str("domain", url).
+                //     Str("status", fmt.Sprintf("%d", status)).
+                //     Msg("Matching status code found in the HTTP request")
             }
         }
 
         for _, size := range sizes {
-            if match, err := m.MatchSize(size); match {
+            if match, _ := m.MatchSize(size); match {
                 result.Size = size
-                log.Debug().
-                    Str("domain", url).
-                    Str("size", fmt.Sprintf("%d", size)).
-                    Msg("Matching body size found in the HTTP request.")
-            } else if err != nil {
-                log.Debug().Msgf("%v", err)
+                // log.Debug().
+                //     Str("domain", url).
+                //     Str("size", fmt.Sprintf("%d", size)).
+                //     Msg("Matching body size found in the HTTP request.")
             }
         }
 
-        matched, matches := m.MatchRegex(string(resp.Body))
+        matched, matches, err := m.MatchRegex(string(resp.Body))
 
         if matched {
             result.Regexes = matches
-            log.Debug().
-                Str("domain", url).
-                Str("matches", fmt.Sprintf("%s", matches)).
-                Msg("Matching regex found in the HTTP response.")
+            // log.Debug().
+            //     Str("domain", url).
+            //     Str("matches", fmt.Sprintf("%s", matches)).
+            //     Msg("Matching regex found in the HTTP response.")
         }
+        // else if err != nil {
+        //     log.Debug().Msgf("%v", err)
+        // }
 
         // Chama a função Validate para validar o objeto Result
         validate := result.Validate()
@@ -262,9 +261,15 @@ func (m *Matcher) Match(certs Certificates, count int) {
 
         switch {
         case len(keywords) > 0:
-            log.Info().Msgf("Domain %s Matches Keywords (%s)\n\n", url, strings.Join(keywords, ","))
+            log.Info().Msgf("Domain %s Matches Keywords (%s)\n", url, strings.Join(keywords, ","))
+            log.Info().Msgf("Number of certificates issued: %d", count)
+            // Add a new line after the spinner to avoid overlapping with the next line of output
+            fmt.Println()
         case tlds:
-            log.Info().Msgf("Domain %s Matched TLDs (Top-Level Domains)\n\n", url)
+            log.Info().Msgf("Domain %s Matched TLDs (Top-Level Domains)\n", url)
+            log.Info().Msgf("Number of certificates issued: %d", count)
+            // Add a new line after the spinner to avoid overlapping with the next line of output
+            fmt.Println()
         case len(regex) > 0:
 
             log.Info().Msgf("Pattern successfully at %s", time.Now().Format("01-02-2006 15:04:05"))

@@ -15,7 +15,8 @@ type CertLogger struct {
 func New(logFilePath string) (*CertLogger, error) {
     // Check if the log file exists. If not, create it.
     _, err := os.Stat(logFilePath)
-    if os.IsNotExist(err) {
+
+    if !os.IsNotExist(err) {
         // Try to create log file in specified path
         f, err := os.Create(logFilePath)
         if err != nil {
@@ -29,6 +30,18 @@ func New(logFilePath string) (*CertLogger, error) {
             if err != nil {
                 return nil, fmt.Errorf("error creating log file: %s", err)
             }
+        }
+        f.Close()
+    } else {
+        // If the log file path does not exist, try to create it in user's home directory
+        homeDir, err := os.UserHomeDir()
+        if err != nil {
+            return nil, fmt.Errorf("error getting user home directory: %s", err)
+        }
+        logFilePath = filepath.Join(homeDir, "certwatcher.log")
+        f, err := os.Create(logFilePath)
+        if err != nil {
+            return nil, fmt.Errorf("error creating log file: %s", err)
         }
         f.Close()
     }

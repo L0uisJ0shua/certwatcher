@@ -3,6 +3,7 @@ package templates
 import (
     "fmt"
     "os"
+    "path/filepath"
     "time"
 )
 
@@ -15,9 +16,19 @@ func New(logFilePath string) (*CertLogger, error) {
     // Check if the log file exists. If not, create it.
     _, err := os.Stat(logFilePath)
     if os.IsNotExist(err) {
+        // Try to create log file in specified path
         f, err := os.Create(logFilePath)
         if err != nil {
-            return nil, fmt.Errorf("error creating log file: %s", err)
+            // If that fails, try to create log file in user's home directory
+            homeDir, err := os.UserHomeDir()
+            if err != nil {
+                return nil, fmt.Errorf("error getting user home directory: %s", err)
+            }
+            logFilePath = filepath.Join(homeDir, "certwatcher.log")
+            f, err = os.Create(logFilePath)
+            if err != nil {
+                return nil, fmt.Errorf("error creating log file: %s", err)
+            }
         }
         f.Close()
     }

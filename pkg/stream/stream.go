@@ -12,14 +12,6 @@ import (
 	"pkg/matchers"
 )
 
-type Message struct {
-	Domain         string
-	Domains        []string
-	Issuer         string
-	Source         string
-	SubjectAltName string
-}
-
 // Certificates captures certificates from a CertStream, a real-time feed of newly issued SSL/TLS certificates.
 // It takes a slice of keywords to check against the domain name of each certificate received and a list of valid TLDs.
 func Certificates(t []core.Models) {

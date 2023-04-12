@@ -265,6 +265,11 @@ func (m *Matcher) Match(certs Certificates, count int) {
             log.Info().Msgf("Number of certificates issued: %d", count)
             // Add a new line after the spinner to avoid overlapping with the next line of output
             fmt.Println()
+
+            // Display matched keywords
+            for _, keyword := range keywords {
+                log.Info().Msgf("Matched keyword: %s", keyword)
+            }
         case tlds:
             log.Info().Msgf("Domain %s Matched TLDs (Top-Level Domains)\n", url)
             log.Info().Msgf("Number of certificates issued: %d", count)
@@ -275,40 +280,39 @@ func (m *Matcher) Match(certs Certificates, count int) {
             log.Info().Msgf("Pattern successfully at %s", time.Now().Format("01-02-2006 15:04:05"))
             log.Info().Msgf("Number of certificates issued: %d", count)
 
-            template := templates.LogEntry{
-                ID:       m.ID,
-                Name:     templates.Protocolos.HTTP,
-                Severity: level,
-                Tags:     utils.Unique(m.Tags),
-                Domain:   url,
-                Options:  []string{"tags"},
-                // Adicionar outras entradas de informação de modelo aqui...
+            certLogs := templates.LogEntryGroup{
+                Template: templates.LogEntry{
+                    ID:       m.ID,
+                    Name:     templates.Protocolos.HTTP,
+                    Severity: level,
+                    Tags:     utils.Unique(m.Tags),
+                    Domain:   url,
+                    Options:  []string{"tags"},
+                    // Adicionar outras entradas de informação de modelo aqui...
+                },
+                CertsLog: []templates.LogEntry{
+                    {
+                        Name:    "ssl-dns-names",
+                        Types:   templates.Protocolos.DNS,
+                        Domain:  baseURL,
+                        Message: strings.Join(certs.AllDomains, ", "),
+                    },
+
+                    {
+                        Name:    "ssl-issuer",
+                        Types:   templates.Protocolos.SSL,
+                        Domain:  baseURL,
+                        Message: certs.Issuer,
+                    },
+                    {
+                        Name:    "source",
+                        Types:   templates.Protocolos.Log,
+                        Domain:  baseURL,
+                        Message: certs.Source,
+                    },
+                },
             }
-
-            certLog := []templates.LogEntry{
-                {
-                    Name:    "ssl-dns-names",
-                    Types:   templates.Protocolos.DNS,
-                    Domain:  baseURL,
-                    Message: strings.Join(certs.AllDomains, ", "),
-                },
-
-                {
-                    Name:    "ssl-issuer",
-                    Types:   templates.Protocolos.SSL,
-                    Domain:  baseURL,
-                    Message: certs.Issuer,
-                },
-                {
-                    Name:    "source",
-                    Types:   templates.Protocolos.Log,
-                    Domain:  baseURL,
-                    Message: certs.Source,
-                },
-            }
-
-            templates.Log(template)
-            templates.CertsLog(certLog)
+            templates.Log(certLogs)
             // Add a new line after the spinner to avoid overlapping with the next line of output
             fmt.Println()
         default:

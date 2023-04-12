@@ -3,6 +3,8 @@ package templates
 import (
 	"fmt"
 	"internal/colorizer"
+	"pkg/config"
+	loggers "pkg/templates/log"
 	"pkg/types"
 	"pkg/utils"
 	"strings"
@@ -20,25 +22,31 @@ var Protocolos = &types.Protocols{
 }
 
 type LogEntry struct {
-	ID       string
-	Name     string
-	Severity severity.Severity
-	Domain   string
-	Types    string
-	Message  string
-	Options  []string
-	Tags     []string
-	Authors  []string
+	ID       string            `json:"id"`
+	Name     string            `json:"name"`
+	Severity severity.Severity `json:"severity"`
+	Domain   string            `json:"domain"`
+	Types    string            `json:"types"`
+	Message  string            `json:"message"`
+	Options  []string          `json:"options"`
+	Tags     []string          `json:"tags"`
+	Authors  []string          `json:"authors"`
+}
+
+type LogEntryGroup struct {
+	Template LogEntry
+	CertsLog []LogEntry
 }
 
 // The package also includes a Colorizer object, which is used to colorize output for the Logger function.t.
 var (
-	Colorizer         aurora.Aurora
+	Colorizer aurora.Aurora
 )
 
 func init() {
 	Colorizer = aurora.NewAurora(true)
 }
+
 // Display templates information on load certwacher
 func TemplateInfo(id, name string, authors []string, severity severity.Severity, tags []string) {
 
@@ -51,27 +59,74 @@ func TemplateInfo(id, name string, authors []string, severity severity.Severity,
 
 	log.Info().Msgf("%s", logMsg)
 }
-// Display a single log information about match template
-func Log(entry LogEntry) {
-	log.Info().Msgf("[%s] [%s] [%s] %s [%s] [%s]",
-		Colorizer.BrightGreen(entry.ID).String(),
-		Colorizer.BrightBlue(entry.Name).String(),
-		colorizer.GetSeverityColor(entry.Severity),
-		Colorizer.White(entry.Domain).String(),
-		Colorizer.BrightBlue(strings.Join(utils.Unique(entry.Options), ", ")),
-		Colorizer.BrightCyan(strings.Join(utils.Unique(entry.Tags), ", ")))
-}
 
-func CertsLog(entries []LogEntry, args ...interface{}) {
-	for _, entry := range entries {
-		logArgs := []interface{}{
-			Colorizer.BrightGreen(entry.Name),
-			Colorizer.BrightGreen(entry.Types),
-			Colorizer.BrightBlue(severity.Info),
-			Colorizer.White(entry.Domain),
-			Colorizer.BrightCyan(entry.Message),
+// Display a single log information about match template
+func Log(entries interface{}) {
+
+	// Loaded Configuration File
+	// This is default configuration
+	config, _ := config.LoadConfig()
+	logger, err := loggers.New(config.Log.File)
+	if err != nil {
+		log.Error().Msgf("%s", err)
+		return
+	}
+	defer func() {
+		if err := logger.Close(); err != nil {
+			log.Error().Msgf("%s", err)
 		}
-		log.Info().Msgf("[%s] [%s] [%s] %s [%s]", logArgs...)
+	}()
+
+	switch v := entries.(type) {
+	case LogEntry:
+		logMsg := fmt.Sprintf("[%s] [%s] [%s] %s [%s] [%s]",
+			Colorizer.BrightGreen(v.ID).String(),
+			Colorizer.BrightBlue(v.Name).String(),
+			colorizer.GetSeverityColor(v.Severity),
+			Colorizer.White(v.Domain).String(),
+			Colorizer.BrightBlue(strings.Join(utils.Unique(v.Options), ", ")),
+			Colorizer.BrightCyan(strings.Join(utils.Unique(v.Tags), ", ")))
+
+		log.Info().Msgf("%s", logMsg)
+		if err := logger.WriteLog(logMsg); err != nil {
+			log.Error().Msgf("%s", err)
+		}
+
+	case LogEntryGroup:
+		// log template entry
+		templateLog := v.Template
+		logMsg := fmt.Sprintf("[%s] [%s] [%s] %s [%s] [%s]",
+			Colorizer.BrightGreen(templateLog.ID).String(),
+			Colorizer.BrightBlue(templateLog.Name).String(),
+			colorizer.GetSeverityColor(templateLog.Severity),
+			Colorizer.White(templateLog.Domain).String(),
+			Colorizer.BrightBlue(strings.Join(utils.Unique(templateLog.Options), ", ")),
+			Colorizer.BrightCyan(strings.Join(utils.Unique(templateLog.Tags), ", ")))
+		log.Info().Msgf("%s", logMsg)
+
+		if err := logger.WriteLog(logMsg); err != nil {
+			log.Error().Msgf("%s", err)
+		}
+
+		// log cert logs
+		for _, certLog := range v.CertsLog {
+			logArgs := []interface{}{
+				Colorizer.BrightGreen(certLog.Name),
+				Colorizer.BrightGreen(certLog.Types),
+				Colorizer.BrightBlue(severity.Info),
+				Colorizer.White(certLog.Domain),
+				Colorizer.BrightCyan(certLog.Message),
+			}
+
+			logMsg := fmt.Sprintf("[%s] [%s] [%s] %s [%s]", logArgs...)
+			log.Info().Msgf("%s", logMsg)
+			if err := logger.WriteLog(logMsg); err != nil {
+				log.Error().Msgf("%s", err)
+			}
+		}
+
+	default:
+		log.Error().Msgf("invalid entry type")
 	}
 }
 

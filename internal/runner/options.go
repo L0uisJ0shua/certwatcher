@@ -66,7 +66,7 @@ func ParseOptions() *Options {
 	}
 
 	// Loaded Configuration File
-	// This is default configuration
+	// This comment indicates that the configuration file has been loaded
 	c, err := config.LoadConfig()
 
 	if err != nil {
@@ -74,15 +74,20 @@ func ParseOptions() *Options {
 	}
 
 	// Default Configuration Output
+	// This line sets the log level to the default configuration
 	options.SetLogLevel(&c)
 
-	// If the user desires verbose output, show verbose output
+	// Load configuration information
+	config, _ := config.Load()
+
+	// If the user has requested verbose output, show it
 	if options.Version {
 		log.Info().Msgf("Certwatcher version %s\n", config.Version)
 		os.Exit(0)
 	}
 
 	// Show the certwatcher banner
+	// This line displays the Certwatcher banner on the consolegot
 	ShowBanner()
 
 	return options

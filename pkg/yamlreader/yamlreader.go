@@ -2,11 +2,12 @@ package yamlreader
 
 import (
 	"io/ioutil"
+
 	log "github.com/projectdiscovery/gologger"
 	"gopkg.in/yaml.v3"
 )
 
-// ReadYAML lê uma string YAML ou um arquivo YAML e retorna um struct preenchido com os dados
+// ReadYAML
 func ReadYAML(src interface{}, v interface{}) error {
 	var data []byte
 	var err error

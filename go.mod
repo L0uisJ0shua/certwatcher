@@ -10,6 +10,8 @@ replace pkg/stream => ./pkg/stream
 
 replace internal/colorizer => ./internal/colorizer
 
+replace pkg/templates/log => ./pkg/templates/log
+
 replace pkg/config => ./pkg/config
 
 replace pkg/utils => ./pkg/utils
@@ -124,5 +126,6 @@ require (
 	pkg/certstream v0.0.0-00010101000000-000000000000 // indirect
 	pkg/config v0.0.0-00010101000000-000000000000 // indirect
 	pkg/http v0.0.0-00010101000000-000000000000 // indirect
+	pkg/templates/log v0.0.0-00010101000000-000000000000 // indirect
 	pkg/yamlreader v0.0.0-00010101000000-000000000000 // indirect
 )

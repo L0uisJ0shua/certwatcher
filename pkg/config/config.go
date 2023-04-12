@@ -1,25 +1,17 @@
 package config
 
 import (
-    "encoding/json"
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
 
-	"github.com/mitchellh/go-homedir"
-	"github.com/spf13/viper"
 	"io/ioutil"
-	"gopkg.in/yaml.v3"
-	log "github.com/projectdiscovery/gologger"
-)
 
-var (
-	// Version represents the current version of the application
-	Version = "0.1.2"
-	// Name represents the name of the application
-	Name = "certwatcher"
-	// The `Notice` variable represents a notice about the current state of the application.
-	Notice = "\n\nThis project is in active development not ready for production. \nPlease use a proxy to stay safe. Use at your own risk."
+	"github.com/mitchellh/go-homedir"
+	log "github.com/projectdiscovery/gologger"
+	"github.com/spf13/viper"
+	"gopkg.in/yaml.v3"
 )
 
 type OpenAIConfig struct {
@@ -66,9 +58,9 @@ type AppConfig struct {
 
 // Config is the configuration struct
 type Config struct {
-	Log       LogConfig    `mapstructure:"log"`
-	Stream    StreamConfig `mapstructure:"stream"`
-	OpenAI    OpenAIConfig `mapstructure:"openai"`
+	Log    LogConfig    `mapstructure:"log"`
+	Stream StreamConfig `mapstructure:"stream"`
+	OpenAI OpenAIConfig `mapstructure:"openai"`
 }
 
 // Load Configuration JSON
@@ -146,7 +138,7 @@ func createDefaultConfig() error {
 				Mode: "live",
 			},
 			Domains: []string{},
-			Ignore: false,
+			Ignore:  false,
 		},
 	}
 	// Convert the default config to YAML format

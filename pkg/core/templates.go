@@ -6,8 +6,9 @@ import (
     "pkg/catalog/disk"
     "pkg/types"
     "pkg/utils"
-    yaml "pkg/yamlreader"
     "strings"
+
+    yaml "pkg/yamlreader"
 
     "github.com/logrusorgru/aurora/v4"
     log "github.com/projectdiscovery/gologger"
@@ -69,13 +70,6 @@ func Summary(template types.Templates, matchers []string, loadsTemplates []strin
 }
 
 func Templates(options types.Options) []Models {
-    // Encontrar os templates a serem usados
-    catalog := &disk.DiskCatalog{}
-    templates, err := catalog.Find(options.Templates)
-
-    if err != nil {
-        log.Fatal().Msgf("%s", err)
-    }
 
     // Slice para armazenar as informações de cada template
     var Templates []Models
@@ -88,6 +82,14 @@ func Templates(options types.Options) []Models {
     tagsMap := make(map[string]map[string]bool)
     // Initialize a map to keep track of processed templates
     processed := make(map[string]bool)
+
+    // Encontrar os templates a serem usados
+    catalog := &disk.DiskCatalog{}
+    templates, err := catalog.Find(options.Templates)
+
+    if err != nil {
+        log.Fatal().Msgf("%s", err)
+    }
 
     var template types.Templates
 

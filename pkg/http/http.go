@@ -60,13 +60,6 @@ func Requests(url string, req *Request) (*colly.Response, []int, []int, error) {
 			Msg("Received response from")
 	})
 
-	if len(req.Paths) == 0 {
-		req.Paths = []string{"/"}
-		// log.Debug().
-		// 	Str("path", fmt.Sprintf("%s", req.Paths[0])).
-		// 	Msg("Request paths not provided, using default path")
-	}
-
 	for _, path := range req.Paths {
 		c.Visit(fmt.Sprintf("%s%s", url, path))
 	}

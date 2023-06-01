@@ -26,7 +26,7 @@ func Certificates(t []core.Models) {
 	eventsPerMinute := 60 * 2
 
 	// Define the cache duration (in minutes)
-	cacheDuration := 30
+	cacheDuration := 1
 
 	// Create a map to store the cached domains
 	cache := make(map[string]time.Time)

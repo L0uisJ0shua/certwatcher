@@ -34,7 +34,7 @@ func NewCertStream() *CertStream {
 			ReadBufferSize:   1024,
 			WriteBufferSize:  1024,
 			TLSClientConfig: &tls.Config{
-				InsecureSkipVerify: true,
+				InsecureSkipVerify: false,
 			},
 		},
 		HandshakeTimeout:  30 * time.Second,
@@ -44,7 +44,7 @@ func NewCertStream() *CertStream {
 		PongWait:          60 * time.Second,
 		ReconnectDur:      time.Second,
 		MaxMessageSize:    1024 * 1024,
-		EnableCompression: true,
+		EnableCompression: false,
 	}
 }
 
@@ -143,7 +143,7 @@ func (c *CertStream) dialWithTimeout() (*websocket.Conn, error) {
 
 	conn, _, err := dialer.Dial(c.URL, nil)
 	if err != nil {
-		return nil, err
+		return nil, errors.New("No matching body size found in the HTTP request.")
 	}
 
 	done := make(chan struct{})

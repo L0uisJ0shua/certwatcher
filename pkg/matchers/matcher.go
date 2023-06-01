@@ -182,7 +182,6 @@ func Severity(level string) (severity.Severity, error) {
 func (m *Matcher) Match(certs Certificates, count int) {
     // Aqui podemos fazer a lógica de match do certificado com base nos critérios do Matcher
     // Neste exemplo, apenas imprimimos alguns campos do certificado e os critérios de match
-
     baseURL, err := certs.Url() // extract the domain base example -> example.com
 
     if err != nil {
@@ -206,27 +205,27 @@ func (m *Matcher) Match(certs Certificates, count int) {
         resp, stats, sizes, err := http.Requests(url, req)
 
         if err != nil {
-            // log.Warning().Msgf("Error making HTTP request: %v", err)
+            log.Warning().Msgf("Error making HTTP request: %v", err)
             return
         }
 
         for _, status := range stats {
             if match, _ := m.MatchStatusCode(status); match {
                 result.Status = status
-                // log.Debug().
-                //     Str("domain", url).
-                //     Str("status", fmt.Sprintf("%d", status)).
-                //     Msg("Matching status code found in the HTTP request")
+                log.Debug().
+                    Str("domain", url).
+                    Str("status", fmt.Sprintf("%d", status)).
+                    Msg("Matching status code found in the HTTP request")
             }
         }
 
         for _, size := range sizes {
             if match, _ := m.MatchSize(size); match {
                 result.Size = size
-                // log.Debug().
-                //     Str("domain", url).
-                //     Str("size", fmt.Sprintf("%d", size)).
-                //     Msg("Matching body size found in the HTTP request.")
+                log.Debug().
+                    Str("domain", url).
+                    Str("size", fmt.Sprintf("%d", size)).
+                    Msg("Matching body size found in the HTTP request.")
             }
         }
 
@@ -234,14 +233,13 @@ func (m *Matcher) Match(certs Certificates, count int) {
 
         if matched {
             result.Regexes = matches
-            // log.Debug().
-            //     Str("domain", url).
-            //     Str("matches", fmt.Sprintf("%s", matches)).
-            //     Msg("Matching regex found in the HTTP response.")
+            log.Debug().
+                Str("domain", url).
+                Str("matches", fmt.Sprintf("%s", matches)).
+                Msg("Matching regex found in the HTTP response.")
+        } else if err != nil {
+            log.Debug().Msgf("%v", err)
         }
-        // else if err != nil {
-        //     log.Debug().Msgf("%v", err)
-        // }
 
         // Chama a função Validate para validar o objeto Result
         validate := result.Validate()

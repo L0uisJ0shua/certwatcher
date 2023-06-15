@@ -96,6 +96,7 @@ require (
 	github.com/projectdiscovery/retryablehttp-go v1.0.13 // indirect
 	github.com/projectdiscovery/utils v0.0.16 // indirect
 	github.com/rogpeppe/go-internal v1.9.0 // indirect
+	github.com/rs/zerolog v1.29.1 // indirect
 	github.com/saintfish/chardet v0.0.0-20230101081208-5e3ef4b5456d // indirect
 	github.com/spf13/afero v1.9.3 // indirect
 	github.com/spf13/cast v1.5.0 // indirect

@@ -12,45 +12,32 @@ import (
 	"pkg/matchers"
 )
 
+var (
+	domainMap    = make(map[string]bool)
+	domainMapMux sync.Mutex
+)
+
 // Certificates captures certificates from a CertStream, a real-time feed of newly issued SSL/TLS certificates.
 // It takes a slice of keywords to check against the domain name of each certificate received and a list of valid TLDs.
 func Certificates(t []core.Models) {
 
-	// Create a new CertStream to capture certificates in real-time
 	stream := certstream.NewCertStream()
-
-	// Initialize a counter for the number of certificates emitted
 	certs := 0
-
-	// Definir a quantidade de eventos por minuto desejada
-	eventsPerMinute := 60 * 2
-
-	// Define the cache duration (in minutes)
+	eventsPerMinute := 60 * 1
 	cacheDuration := 1
-
-	// Create a map to store the cached domains
 	cache := make(map[string]time.Time)
-
-	// Create a mutex to synchronize access to the cache
 	cacheMutex := sync.Mutex{}
 
 	// Start a goroutine to remove expired cache entries periodically
 	go func() {
 		for {
-			// Wait for a duration equal to the cache duration
-			time.Sleep(time.Duration(cacheDuration) * time.Second)
-
-			// Acquire the cache mutex to synchronize access
+			time.Sleep(time.Duration(cacheDuration) * time.Minute)
 			cacheMutex.Lock()
-
-			// Iterate over the cache entries and remove the expired ones
 			for domain, timestamp := range cache {
-				if time.Since(timestamp) > time.Duration(cacheDuration)*time.Second {
+				if time.Since(timestamp) > time.Duration(cacheDuration)*time.Minute {
 					delete(cache, domain)
 				}
 			}
-
-			// Release the cache mutex
 			cacheMutex.Unlock()
 		}
 	}()
@@ -59,19 +46,21 @@ func Certificates(t []core.Models) {
 	eventChannel := stream.GetCertificates(eventsPerMinute)
 
 	// Create a new spinner and start it in a goroutine
-	s := spinner.New(spinner.CharSets[14], 60*time.Millisecond)
-
+	s := spinner.New(spinner.CharSets[14], 10*time.Millisecond)
 	s.Color("", "bold")
 
 	go func() {
 		s.Start()
-		for range time.Tick(60 * time.Second) {
+		for range time.Tick(5 * time.Second) {
 			s.Restart()
 			s.Reverse()
 		}
 	}()
 
-	s.UpdateSpeed(60 * time.Millisecond) // Update the speed the spinner spins at
+	s.UpdateSpeed(100 * time.Millisecond) // Update the speed the spinner spins at
+
+	// Add a new line after the spinner to avoid overlapping with the next line of output
+	fmt.Println()
 
 	// Iterate over each certificate event received from CertStream
 	for event := range eventChannel {
@@ -92,10 +81,19 @@ func Certificates(t []core.Models) {
 		cacheMutex.Lock()
 		if _, ok := cache[certificates.Domain]; ok {
 			cacheMutex.Unlock()
-			continue // Skip processing if the domain is already cached
+			// log.Info().Msgf("Domain %s is cached\n\n", certificates.Domain)
+			continue
 		}
-		cache[certificates.Domain] = time.Now() // Cache the domain
+		cache[certificates.Domain] = time.Now()
 		cacheMutex.Unlock()
+
+		domainMapMux.Lock()
+		if domainMap[certificates.Domain] {
+			domainMapMux.Unlock()
+			continue
+		}
+		domainMap[certificates.Domain] = true
+		domainMapMux.Unlock()
 
 		// Iterate over each template and call matcher.Match for each one
 		for _, template := range t {

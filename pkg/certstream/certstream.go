@@ -34,7 +34,7 @@ func NewCertStream() *CertStream {
 			ReadBufferSize:   1024,
 			WriteBufferSize:  1024,
 			TLSClientConfig: &tls.Config{
-				InsecureSkipVerify: false,
+				InsecureSkipVerify: true,
 			},
 		},
 		HandshakeTimeout:  30 * time.Second,
@@ -44,7 +44,7 @@ func NewCertStream() *CertStream {
 		PongWait:          60 * time.Second,
 		ReconnectDur:      time.Second,
 		MaxMessageSize:    1024 * 1024,
-		EnableCompression: false,
+		EnableCompression: true,
 	}
 }
 
@@ -85,7 +85,7 @@ func (c *CertStream) GetCertificates(limitPerMin int) chan *types.CertStreamEven
 						err := conn.WriteMessage(websocket.TextMessage, []byte("ping"))
 						if err != nil {
 							log.Warning().Msgf("Error sending heartbeat to CertStream: %v", err)
-							done <- struct{}{}
+							close(done) // Feche o canal 'done' para encerrar a goroutine
 							return
 						}
 					case <-done:
@@ -100,7 +100,7 @@ func (c *CertStream) GetCertificates(limitPerMin int) chan *types.CertStreamEven
 				_, message, err := conn.ReadMessage()
 				if err != nil {
 					if errors.Is(err, websocket.ErrCloseSent) {
-						// Connection closed by us, don't log an error.
+						// Conexão fechada por nós, não registre um erro.
 						return
 					}
 
@@ -124,11 +124,11 @@ func (c *CertStream) GetCertificates(limitPerMin int) chan *types.CertStreamEven
 				case certificates <- &event:
 					count++
 				default:
-					// log.Warning().Msgf("Failed to send CertStream event to channel: channel is full")
+					continue
 				}
 			}
 
-			close(done)
+			close(done) // Feche o canal 'done' após o loop interno
 		}
 	}()
 
@@ -138,7 +138,7 @@ func (c *CertStream) GetCertificates(limitPerMin int) chan *types.CertStreamEven
 // dialWithTimeout connects to the CertStream with a timeout
 func (c *CertStream) dialWithTimeout() (*websocket.Conn, error) {
 	dialer := &websocket.Dialer{
-		HandshakeTimeout: 10 * time.Second,
+		HandshakeTimeout: 30 * time.Second,
 	}
 
 	conn, _, err := dialer.Dial(c.URL, nil)

@@ -180,15 +180,12 @@ func Severity(level string) (severity.Severity, error) {
 }
 
 func (m *Matcher) Match(certs Certificates, count int) {
-    // Aqui podemos fazer a lógica de match do certificado com base nos critérios do Matcher
-    // Neste exemplo, apenas imprimimos alguns campos do certificado e os critérios de match
-    baseURL, err := certs.Url() // extract the domain base example -> example.com
-
-    if err != nil {
-        return
-    }
-
     for _, domains := range certs.AllDomains {
+        baseURL, err := certs.Url() // extract the domain base example -> example.com
+
+        if err != nil {
+            continue
+        }
 
         result := &Result{}
         url := utils.RemoveWildcardPrefix(domains)
@@ -197,23 +194,33 @@ func (m *Matcher) Match(certs Certificates, count int) {
         result.TLDs, _ = m.MatchTLD(url)
 
         req := &http.Request{
-            Method: m.Requests.Method,
-            Paths:  m.Requests.Path,
+            Paths: m.Requests.Path,
         }
 
-        url = fmt.Sprintf("https://%s", url)
-        resp, stats, sizes, err := http.Requests(url, req)
+        switch m.Requests.Method {
+        case "GET":
+            req.Method = http.GET
+        case "POST":
+            req.Method = http.GET
+        // Adicione outros métodos HTTP, se necessário
+        default:
+            // Método HTTP inválido fornecido, faça o tratamento de erro apropriado
+            log.Error().Msgf("Invalid HTTP method: %s", m.Requests.Method)
+            return
+        }
+
+        urlWithScheme := fmt.Sprintf("https://%s", url)
+        resp, stats, sizes, err := http.Requests(urlWithScheme, req)
 
         if err != nil {
-            log.Warning().Msgf("Error making HTTP request: %v", err)
-            return
+            continue
         }
 
         for _, status := range stats {
             if match, _ := m.MatchStatusCode(status); match {
                 result.Status = status
                 log.Debug().
-                    Str("domain", url).
+                    Str("url", urlWithScheme).
                     Str("status", fmt.Sprintf("%d", status)).
                     Msg("Matching status code found in the HTTP request")
             }
@@ -223,7 +230,7 @@ func (m *Matcher) Match(certs Certificates, count int) {
             if match, _ := m.MatchSize(size); match {
                 result.Size = size
                 log.Debug().
-                    Str("domain", url).
+                    Str("url", urlWithScheme).
                     Str("size", fmt.Sprintf("%d", size)).
                     Msg("Matching body size found in the HTTP request.")
             }
@@ -234,7 +241,7 @@ func (m *Matcher) Match(certs Certificates, count int) {
         if matched {
             result.Regexes = matches
             log.Debug().
-                Str("domain", url).
+                Str("url", urlWithScheme).
                 Str("matches", fmt.Sprintf("%s", matches)).
                 Msg("Matching regex found in the HTTP response.")
         } else if err != nil {
@@ -245,21 +252,19 @@ func (m *Matcher) Match(certs Certificates, count int) {
         validate := result.Validate()
 
         if !validate.Valid {
-            log.Error().Msgf("Domain %s is invalid\n\n", url)
+            log.Error().Msgf("Domain %s is invalid\n\n", urlWithScheme)
             continue
         }
 
         level, _ := Severity(m.Severity)
 
-        var (
-            keywords = utils.Unique(validate.Keywords)
-            tlds     = validate.TLDs
-            regex    = utils.Unique(validate.Regexes)
-        )
+        keywords := utils.Unique(validate.Keywords)
+        tlds := validate.TLDs
+        regex := utils.Unique(validate.Regexes)
 
         switch {
         case len(keywords) > 0:
-            log.Info().Msgf("Domain %s Matches Keywords (%s)\n", url, strings.Join(keywords, ","))
+            log.Info().Msgf("URL %s Matches Keywords (%s)\n", urlWithScheme, strings.Join(keywords, ","))
             log.Info().Msgf("Number of certificates issued: %d", count)
             // Add a new line after the spinner to avoid overlapping with the next line of output
             fmt.Println()
@@ -268,15 +273,26 @@ func (m *Matcher) Match(certs Certificates, count int) {
             for _, keyword := range keywords {
                 log.Info().Msgf("Matched keyword: %s", keyword)
             }
+
         case tlds:
-            log.Info().Msgf("Domain %s Matched TLDs (Top-Level Domains)\n", url)
+            log.Info().Msgf("URL %s Matched TLDs (Top-Level Domains)\n", urlWithScheme)
             log.Info().Msgf("Number of certificates issued: %d", count)
             // Add a new line after the spinner to avoid overlapping with the next line of output
             fmt.Println()
-        case len(regex) > 0:
 
-            log.Info().Msgf("Pattern successfully at %s", time.Now().Format("01-02-2006 15:04:05"))
-            log.Info().Msgf("Number of certificates issued: %d", count)
+        case len(regex) > 0:
+            log.Info().Msgf("Execution time: %s", time.Now().Format("2006-01-02 15:04:05"))
+            log.Info().Msgf("Number of issued certificates: %d", count)
+
+            log.Info().Msg("Regex patterns matched:")
+            for _, reg := range regex {
+                log.Info().Msgf("- %s", reg)
+            }
+
+            log.Info().Msg("Request paths matched:")
+            for _, path := range m.Requests.Path {
+                log.Info().Msgf("- %s", path)
+            }
 
             certLogs := templates.LogEntryGroup{
                 Template: templates.LogEntry{
@@ -284,7 +300,7 @@ func (m *Matcher) Match(certs Certificates, count int) {
                     Name:     templates.Protocolos.HTTP,
                     Severity: level,
                     Tags:     utils.Unique(m.Tags),
-                    Domain:   url,
+                    Domain:   urlWithScheme,
                     Options:  []string{"tags"},
                     // Adicionar outras entradas de informação de modelo aqui...
                 },
@@ -313,9 +329,10 @@ func (m *Matcher) Match(certs Certificates, count int) {
             templates.Log(certLogs)
             // Add a new line after the spinner to avoid overlapping with the next line of output
             fmt.Println()
+
         default:
             if !validate.Valid {
-                log.Error().Msgf("Domain %s is invalid\n\n", url)
+                log.Error().Msgf("URL %s is invalid\n\n", urlWithScheme)
             }
         }
     }

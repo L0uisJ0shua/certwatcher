@@ -25,6 +25,7 @@ type Options struct {
 	Version        bool
 	Retries        int
 	Timeout        int
+	Certs          int
 }
 
 func ParseOptions() *Options {
@@ -40,6 +41,11 @@ func ParseOptions() *Options {
 		flagSet.StringSliceVarP(&options.Templates, "template", "t", nil, "List of template or template directory to run (comma-separated, file)", goflags.FileCommaSeparatedStringSliceOptions),
 		flagSet.BoolVar(&options.Validate, "validate", false, "Validate the passed templates to certwatcher"),
 		flagSet.StringSliceVarP(&options.Generate, "generate", "g", nil, "Generate a new template with the provided name Powered by OpenAI (input: stdin,string,file)", goflags.CommaSeparatedStringSliceOptions),
+	)
+
+	// Opções de limite de certificados por minuto
+	flagSet.CreateGroup("limits", "Limits",
+		flagSet.IntVar(&options.Certs, "certs", 60, "Maximum number of certificates to process per minute"),
 	)
 
 	// Browser configs

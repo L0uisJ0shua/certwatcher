@@ -52,21 +52,19 @@ func Info(template types.Templates, loadsTags []string) {
 }
 
 func Summary(template types.Templates, matchers []string, loadsTemplates []string) {
-    if len(loadsTemplates) > 0 {
-        log.Info().Msgf("Templates have been loaded: %d", len(loadsTemplates))
-    }
     if len(template.Info.Keywords) > 0 {
-        log.Info().Msgf("A total of %d keywords have been loaded", len(template.Info.Keywords))
-    }
-    if len(template.Info.Classification.Tags) > 0 {
-        log.Info().Msgf("A total of %d unique tags have been loaded", len(template.Info.Classification.Tags))
+        log.Info().Msgf("Loaded %d keywords", len(template.Info.Keywords))
     }
     if len(matchers) > 0 {
-        log.Info().Msgf("A total of %d unique matchers have been loaded", len(matchers))
+        log.Info().Msgf("Loaded %d unique matchers", len(matchers))
     }
     if len(template.Info.Tlds) > 0 {
-        log.Info().Msgf("A total of %d TLDs (Top-Level Domains) have been loaded", len(template.Info.Tlds))
+        log.Info().Msgf("Loaded %d TLDs (Top-Level Domains)", len(template.Info.Tlds))
     }
+    if len(loadsTemplates) > 0 {
+        log.Info().Msgf("Loaded %d templates", len(loadsTemplates))
+    }
+
 }
 
 func Templates(options types.Options) []Models {
@@ -166,8 +164,9 @@ func Templates(options types.Options) []Models {
 
         // Marcar o template como processado
         processed[template.Info.ID] = true
-
-        Info(template, template.Info.Classification.Tags)
+        if options.Debug {
+            Info(template, template.Info.Classification.Tags)
+        }
 
     }
 

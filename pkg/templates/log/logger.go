@@ -4,67 +4,68 @@ import (
     "fmt"
     "os"
     "path/filepath"
+    "sync"
     "time"
 )
 
 type CertLogger struct {
     logFile *os.File
+    mu      sync.Mutex
 }
 
-// Initializes a new CertLogger object
+// New cria um novo objeto CertLogger e inicializa o arquivo de log.
 func New(logFilePath string) (*CertLogger, error) {
-    // Check if the log file exists. If not, create it.
-    _, err := os.Stat(logFilePath)
+    logFilePath = resolveLogFilePath(logFilePath)
 
-    if !os.IsNotExist(err) {
-        // Try to create log file in specified path
-        f, err := os.Create(logFilePath)
-        if err != nil {
-            // If that fails, try to create log file in user's home directory
-            homeDir, err := os.UserHomeDir()
-            if err != nil {
-                return nil, fmt.Errorf("error getting user home directory: %s", err)
-            }
-            logFilePath = filepath.Join(homeDir, "certwatcher.log")
-            f, err = os.Create(logFilePath)
-            if err != nil {
-                return nil, fmt.Errorf("error creating log file: %s", err)
-            }
-        }
-        f.Close()
-    } else {
-        // If the log file path does not exist, try to create it in user's home directory
-        homeDir, err := os.UserHomeDir()
-        if err != nil {
-            return nil, fmt.Errorf("error getting user home directory: %s", err)
-        }
-        logFilePath = filepath.Join(homeDir, "certwatcher.log")
-        f, err := os.Create(logFilePath)
-        if err != nil {
-            return nil, fmt.Errorf("error creating log file: %s", err)
-        }
-        f.Close()
-    }
-
-    // Open the log file for appending
-    logFile, err := os.OpenFile(logFilePath, os.O_APPEND|os.O_WRONLY, 0644)
+    logFile, err := createLogFile(logFilePath)
     if err != nil {
-        return nil, fmt.Errorf("error opening log file: %s", err)
+        return nil, fmt.Errorf("error creating log file: %s", err)
     }
 
-    // Create the CertLogger object
-    logger := &CertLogger{logFile: logFile}
+    logger := &CertLogger{
+        logFile: logFile,
+    }
 
     return logger, nil
 }
 
-// Writes a log message to the log file
-func (logger *CertLogger) WriteLog(message string) error {
-    // Create a timestamp for the log entry
-    timestamp := time.Now().Format("2006-01-02 15:04:05")
+// resolveLogFilePath resolve o caminho do arquivo de log, criando-o no diretório home do usuário, se necessário.
+func resolveLogFilePath(logFilePath string) string {
+    if logFilePath == "" {
+        homeDir, err := os.UserHomeDir()
+        if err != nil {
+            logFilePath = "certwatcher.log" // Fallback to default log file name
+        } else {
+            logFilePath = filepath.Join(homeDir, "certwatcher.log")
+        }
+    }
+    return logFilePath
+}
 
-    // Write the log message to the file
-    _, err := logger.logFile.WriteString(fmt.Sprintf("[%s] %s\n", timestamp, message))
+// createLogFile cria o arquivo de log e os diretórios necessários no caminho.
+func createLogFile(logFilePath string) (*os.File, error) {
+    err := os.MkdirAll(filepath.Dir(logFilePath), os.ModePerm)
+    if err != nil {
+        return nil, fmt.Errorf("error creating log directories: %s", err)
+    }
+
+    logFile, err := os.OpenFile(logFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+    if err != nil {
+        return nil, fmt.Errorf("error opening log file: %s", err)
+    }
+
+    return logFile, nil
+}
+
+// WriteLog escreve uma mensagem de log no arquivo de log.
+func (logger *CertLogger) WriteLog(message string) error {
+    logger.mu.Lock()
+    defer logger.mu.Unlock()
+
+    timestamp := time.Now().Format("2006-01-02 15:04:05")
+    logEntry := fmt.Sprintf("[%s] %s\n", timestamp, message)
+
+    _, err := logger.logFile.WriteString(logEntry)
     if err != nil {
         return fmt.Errorf("error writing to log file: %s", err)
     }
@@ -72,7 +73,14 @@ func (logger *CertLogger) WriteLog(message string) error {
     return nil
 }
 
-// Closes the log file
+// Close fecha o arquivo de log.
 func (logger *CertLogger) Close() error {
-    return logger.logFile.Close()
+    logger.mu.Lock()
+    defer logger.mu.Unlock()
+
+    err := logger.logFile.Close()
+    if err != nil {
+        return fmt.Errorf("error closing log file: %s", err)
+    }
+    return nil
 }

@@ -19,11 +19,11 @@ var (
 
 // Certificates captures certificates from a CertStream, a real-time feed of newly issued SSL/TLS certificates.
 // It takes a slice of keywords to check against the domain name of each certificate received and a list of valid TLDs.
-func Certificates(t []core.Models) {
+func Certificates(t []core.Models, certsPerMinutes int) {
 
 	stream := certstream.NewCertStream()
 	certs := 0
-	eventsPerMinute := 60 * 1
+	eventsPerMinute := certsPerMinutes
 	cacheDuration := 1
 	cache := make(map[string]time.Time)
 	cacheMutex := sync.Mutex{}

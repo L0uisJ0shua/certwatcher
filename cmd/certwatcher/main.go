@@ -23,7 +23,7 @@ func main() {
 	}
 
 	templates := core.Templates(template)
-	stream.Certificates(templates)
+	stream.Certificates(templates, options.Certs)
 }
 
 func init() {

@@ -5,8 +5,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/briandowns/spinner"
-
 	certstream "pkg/certstream"
 	"pkg/core"
 	"pkg/matchers"
@@ -46,7 +44,7 @@ func Certificates(t []core.Models, certsPerMinutes int) {
 	eventChannel := stream.GetCertificates(eventsPerMinute)
 
 	// Create a new spinner and start it in a goroutine
-	s := spinner.New(spinner.CharSets[14], 10*time.Millisecond)
+	/*s := spinner.New(spinner.CharSets[14], 10*time.Millisecond)
 	s.Color("", "bold")
 
 	go func() {
@@ -57,7 +55,7 @@ func Certificates(t []core.Models, certsPerMinutes int) {
 		}
 	}()
 
-	s.UpdateSpeed(100 * time.Millisecond) // Update the speed the spinner spins at
+	s.UpdateSpeed(100 * time.Millisecond)*/ // Update the speed the spinner spins at
 
 	// Add a new line after the spinner to avoid overlapping with the next line of output
 	fmt.Println()
@@ -66,7 +64,7 @@ func Certificates(t []core.Models, certsPerMinutes int) {
 	for event := range eventChannel {
 
 		// Update the spinner message with the number of certificates emitted
-		s.Suffix = fmt.Sprintf(" Capturing certificates for analysis %d\n", certs)
+		// s.Suffix = fmt.Sprintf(" Capturing certificates for analysis %d\n", certs)
 
 		// Extract relevant information from the certificate event
 		certificates := matchers.Certificates{
@@ -113,6 +111,7 @@ func Certificates(t []core.Models, certsPerMinutes int) {
 				Size:      template.Sizes,
 				Condition: template.Condition,
 				Severity:  template.Severity,
+				Author:    template.Author,
 				MatchAll:  true,
 			}
 
@@ -135,5 +134,5 @@ func Certificates(t []core.Models, certsPerMinutes int) {
 
 	}
 	// Stop the spinner
-	s.Stop()
+	// s.Stop()
 }

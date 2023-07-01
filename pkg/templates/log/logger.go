@@ -1,6 +1,7 @@
 package templates
 
 import (
+    "encoding/json"
     "fmt"
     "os"
     "path/filepath"
@@ -11,6 +12,11 @@ import (
 type CertLogger struct {
     logFile *os.File
     mu      sync.Mutex
+}
+
+type LogEntry struct {
+    Timestamp string `json:"timestamp"`
+    Message   string `json:"message"`
 }
 
 // New cria um novo objeto CertLogger e inicializa o arquivo de log.
@@ -63,9 +69,19 @@ func (logger *CertLogger) WriteLog(message string) error {
     defer logger.mu.Unlock()
 
     timestamp := time.Now().Format("2006-01-02 15:04:05")
-    logEntry := fmt.Sprintf("[%s] %s\n", timestamp, message)
+    logEntry := LogEntry{
+        Timestamp: timestamp,
+        Message:   message,
+    }
 
-    _, err := logger.logFile.WriteString(logEntry)
+    logEntryBytes, err := json.Marshal(logEntry)
+    if err != nil {
+        return fmt.Errorf("error marshaling log entry: %s", err)
+    }
+
+    logEntryBytes = append(logEntryBytes, '\n')
+
+    _, err = logger.logFile.Write(logEntryBytes)
     if err != nil {
         return fmt.Errorf("error writing to log file: %s", err)
     }

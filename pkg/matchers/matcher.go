@@ -3,12 +3,15 @@ package matchers
 import (
     "fmt"
     "strings"
-    "time"
 
     "pkg/utils"
 
     "pkg/http"
     "pkg/templates"
+
+    "encoding/json"
+    "os"
+    "path/filepath"
 
     log "github.com/projectdiscovery/gologger"
     "github.com/projectdiscovery/nuclei/v2/pkg/model/types/severity"
@@ -80,6 +83,7 @@ type Matcher struct {
     //   - "/"
     //   - "/.git/config"
     condition ConditionType
+    Author    string  `yaml:"match,author" json:"match,omitempty" jsonschema:"title=match all values,description=match all matcher values ignoring condition"`
     Requests  Request `yaml:"requests"`
 }
 
@@ -181,7 +185,7 @@ func Severity(level string) (severity.Severity, error) {
 
 func (m *Matcher) Match(certs Certificates, count int) {
     for _, domains := range certs.AllDomains {
-        baseURL, err := certs.Url() // extract the domain base example -> example.com
+        _, err := certs.Url() // extract the domain base example -> example.com
 
         if err != nil {
             continue
@@ -262,38 +266,32 @@ func (m *Matcher) Match(certs Certificates, count int) {
         tlds := validate.TLDs
         regex := utils.Unique(validate.Regexes)
 
+        // Criar um slice para armazenar todos os logs
+        // var allLogs []templates.LogEntryGroup
+
         switch {
         case len(keywords) > 0:
-            log.Info().Msgf("URL %s Matches Keywords (%s)\n", urlWithScheme, strings.Join(keywords, ","))
-            log.Info().Msgf("Number of certificates issued: %d", count)
-            // Add a new line after the spinner to avoid overlapping with the next line of output
-            fmt.Println()
+            // log.Info().Msgf("URL %s Matches Keywords (%s)\n", urlWithScheme, strings.Join(keywords, ","))
+            // log.Info().Msgf("Number of certificates issued: %d", count)
+            // // Add a new line after the spinner to avoid overlapping with the next line of output
+            // fmt.Println()
 
-            // Display matched keywords
-            for _, keyword := range keywords {
-                log.Info().Msgf("Matched keyword: %s", keyword)
-            }
+            // // Display matched keywords
+            // for _, keyword := range keywords {
+            //     log.Info().Msgf("Matched keyword: %s", keyword)
+            // }
 
         case tlds:
-            log.Info().Msgf("URL %s Matched TLDs (Top-Level Domains)\n", urlWithScheme)
-            log.Info().Msgf("Number of certificates issued: %d", count)
+            // log.Info().Msgf("URL %s Matched TLDs (Top-Level Domains)\n", urlWithScheme)
+            // log.Info().Msgf("Number of certificates issued: %d", count)
             // Add a new line after the spinner to avoid overlapping with the next line of output
-            fmt.Println()
+            // fmt.Println()
 
         case len(regex) > 0:
-            log.Info().Msgf("Execution time: %s", time.Now().Format("2006-01-02 15:04:05"))
-            log.Info().Msgf("Number of issued certificates: %d", count)
-
-            log.Info().Msg("Regex patterns matched:")
-            for _, reg := range regex {
-                log.Info().Msgf("- %s", reg)
-            }
-
-            log.Info().Msg("Request paths matched:")
-            for _, path := range m.Requests.Path {
-                log.Info().Msgf("- %s", path)
-            }
-
+            // log.Info().Msgf("Execution time: %s", time.Now().Format("2006-01-02 15:04:05"))
+            // log.Info().Msgf("Number of issued certificates: %d", count)
+            // Criar um novo log
+            // Criar um novo log
             certLogs := templates.LogEntryGroup{
                 Template: templates.LogEntry{
                     ID:       m.ID,
@@ -302,33 +300,67 @@ func (m *Matcher) Match(certs Certificates, count int) {
                     Tags:     utils.Unique(m.Tags),
                     Domain:   urlWithScheme,
                     Options:  []string{"tags"},
+                    Authors:  []string{m.Author},
                     // Adicionar outras entradas de informação de modelo aqui...
                 },
-                CertsLog: []templates.LogEntry{
-                    {
-                        Name:    "ssl-dns-names",
-                        Types:   templates.Protocolos.DNS,
-                        Domain:  baseURL,
-                        Message: strings.Join(certs.AllDomains, ", "),
-                    },
-
-                    {
-                        Name:    "ssl-issuer",
-                        Types:   templates.Protocolos.SSL,
-                        Domain:  baseURL,
-                        Message: certs.Issuer,
-                    },
-                    {
-                        Name:    "source",
-                        Types:   templates.Protocolos.Log,
-                        Domain:  baseURL,
-                        Message: certs.Source,
-                    },
-                },
+                CertsLog: nil,
             }
-            templates.Log(certLogs)
-            // Add a new line after the spinner to avoid overlapping with the next line of output
-            fmt.Println()
+
+            // Criar o slice de logs
+            allLogs := []templates.LogEntryGroup{}
+
+            // Obter o caminho do arquivo JSON
+            homeDir, err := os.UserHomeDir()
+            if err != nil {
+                // fmt.Printf("Erro ao obter o diretório home: %s", err.Error())
+                return
+            }
+            filePath := filepath.Join(homeDir, "certLogs.json")
+
+            // Abrir o arquivo no modo de leitura para verificar se já existem logs
+            file, err := os.Open(filePath)
+            if err == nil {
+                // Decodificar logs existentes no arquivo
+                decoder := json.NewDecoder(file)
+                if err := decoder.Decode(&allLogs); err != nil {
+                    // fmt.Printf("Erro ao decodificar os logs existentes: %s", err.Error())
+                    file.Close()
+                    return
+                }
+                file.Close()
+            } else if !os.IsNotExist(err) {
+                //  fmt.Printf("Erro ao abrir o arquivo JSON: %s", err.Error())
+                return
+            }
+
+            // Adicionar o novo log ao slice de logs
+            allLogs = append(allLogs, certLogs)
+
+            // Abrir o arquivo no modo de escrita
+            file, err = os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
+            if err != nil {
+                // fmt.Printf("Erro ao abrir o arquivo JSON: %s", err.Error())
+                return
+            }
+            defer file.Close()
+
+            // Codificar todos os logs em JSON
+            logsJSON, err := json.MarshalIndent(allLogs, "", "  ")
+            if err != nil {
+                // fmt.Printf("Erro ao converter os logs para JSON: %s", err.Error())
+                return
+            }
+
+            // Escrever os logs no arquivo
+            _, err = file.Write(logsJSON)
+            if err != nil {
+                // fmt.Printf("Erro ao escrever os logs no arquivo: %s", err.Error())
+                return
+            }
+
+            templates.Log(certLogs.Template)
+            // Adicionar uma nova linha após o spinner para evitar sobreposição com a próxima linha de saída
+            // fmt.Println()
 
         default:
             if !validate.Valid {

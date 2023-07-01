@@ -26,6 +26,7 @@ type Models struct {
     Matchers  []string
     Tags      []string
     Condition string
+    Author string
 }
 
 var colorize func(interface{}) string
@@ -160,6 +161,7 @@ func Templates(options types.Options) []Models {
             Sizes:     SizeCodes,
             Matchers:  matchers,
             Condition: template.Info.Condition,
+            Author: template.Info.Author,
         })
 
         // Marcar o template como processado

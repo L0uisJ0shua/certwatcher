@@ -22,7 +22,7 @@ func Certificates(t []core.Models, certsPerMinutes int) {
 	stream := certstream.NewCertStream()
 	certs := 0
 	eventsPerMinute := certsPerMinutes
-	cacheDuration := 1
+	cacheDuration := 30
 	cache := make(map[string]time.Time)
 	cacheMutex := sync.Mutex{}
 

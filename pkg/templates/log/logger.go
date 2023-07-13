@@ -1,7 +1,6 @@
 package templates
 
 import (
-    "encoding/json"
     "fmt"
     "os"
     "path/filepath"
@@ -69,19 +68,10 @@ func (logger *CertLogger) WriteLog(message string) error {
     defer logger.mu.Unlock()
 
     timestamp := time.Now().Format("2006-01-02 15:04:05")
-    logEntry := LogEntry{
-        Timestamp: timestamp,
-        Message:   message,
-    }
+    logEntry := fmt.Sprintf("[%s] %s\n", timestamp, message)
 
-    logEntryBytes, err := json.Marshal(logEntry)
-    if err != nil {
-        return fmt.Errorf("error marshaling log entry: %s", err)
-    }
-
-    logEntryBytes = append(logEntryBytes, '\n')
-
-    _, err = logger.logFile.Write(logEntryBytes)
+    // Write the log message to the file
+    _, err := logger.logFile.WriteString(logEntry)
     if err != nil {
         return fmt.Errorf("error writing to log file: %s", err)
     }

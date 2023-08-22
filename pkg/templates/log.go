@@ -130,7 +130,7 @@ func Log(entries interface{}) {
 			}
 		}
 	case DomLogEntry:
-		logMsg := fmt.Sprintf("URL: %s | Domain: %s", v.URL, v.Domain)
+		logMsg := fmt.Sprintf("l0j0-URL: %s | Domain: %s", v.URL, v.Domain)
 		log.Info().Msgf("%s", logMsg)
 		if err := logger.WriteLog(logMsg); err != nil {
 			log.Error().Msgf("%s", logMsg)

@@ -38,6 +38,11 @@ type LogEntryGroup struct {
 	CertsLog []LogEntry
 }
 
+type DomLogEntry struct {
+	URL    string `json:"url"`
+	Domain string `json:"domain"`
+}
+
 // The package also includes a Colorizer object, which is used to colorize output for the Logger function.t.
 var (
 	Colorizer aurora.Aurora
@@ -124,7 +129,12 @@ func Log(entries interface{}) {
 				log.Error().Msgf("%s", err)
 			}
 		}
-
+	case DomLogEntry:
+		logMsg := fmt.Sprintf("URL: %s | Domain: %s", v.URL, v.Domain)
+		log.Info().Msgf("%s", logMsg)
+		if err := logger.WriteLog(logMsg); err != nil {
+			log.Error().Msgf("%s", logMsg)
+		}
 	default:
 		log.Error().Msgf("invalid entry type")
 	}

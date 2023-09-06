@@ -132,7 +132,9 @@ func (c *CertStream) GetCertificates(limitPerMin int) chan *types.CertStreamEven
 
 			close(done) // Feche o canal 'done' após o loop interno
 		}
-	}, nil)
+	}, &robustly.RunOptions{
+		PrintStack: true,
+	})
 
 	return certificates
 }

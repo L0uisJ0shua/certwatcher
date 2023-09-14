@@ -9,8 +9,6 @@ import (
 
 	"github.com/gorilla/websocket"
 	log "github.com/projectdiscovery/gologger"
-
-	"github.com/VividCortex/robustly"
 )
 
 // CertStream is a structure to handle the connection to the CertStream
@@ -53,8 +51,18 @@ func NewCertStream() *CertStream {
 // GetCertificates retrieves a stream of new certificates from the CertStream
 // limitPerMin defines the maximum number of certificates that can be received per minute
 func (c *CertStream) GetCertificates(limitPerMin int) chan *types.CertStreamEvent {
+	defer func() {
+		if err := recover(); err != nil {
+			log.Warning().Msgf("panic occurred: %v\n", err)
+		}
+	}()
 	certificates := make(chan *types.CertStreamEvent, limitPerMin)
-	go robustly.Run(func() {
+	go func() {
+		defer func() {
+			if err := recover(); err != nil {
+				log.Warning().Msgf("panic occurred: %v\n", err)
+			}
+		}()
 		defer close(certificates)
 
 		ticker := time.NewTicker(time.Minute)
@@ -132,9 +140,7 @@ func (c *CertStream) GetCertificates(limitPerMin int) chan *types.CertStreamEven
 
 			close(done) // Feche o canal 'done' após o loop interno
 		}
-	}, &robustly.RunOptions{
-		PrintStack: true,
-	})
+	}()
 
 	return certificates
 }
